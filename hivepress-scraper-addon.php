@@ -1,7 +1,9 @@
 <?php
 /**
  * Plugin Name: HivePress Listing Scraper
- * Description: Adds scraping functionality to HivePress listing submission
+ * Description: Adds FB and Sailing Forums listing scraping functionality to HivePress
+ * Version: 1.0
+ * Author: Max Penders
  */
 
 // Add the scraper button and input field to the listing submission form
@@ -52,4 +54,10 @@ add_action('hivepress/v1/templates/listing_submit_page/content', function() {
     });
     </script>
     <?php
+});
+
+add_action('all', function($tag) {
+    if (strpos($tag, 'hivepress') !== false) {
+        error_log('HivePress Hook: ' . $tag);
+    }
 }); 
