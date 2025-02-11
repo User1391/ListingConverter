@@ -156,3 +156,42 @@ add_action('wp_footer', function() {
     </script>
     <?php
 }, 100);
+
+// Register REST API endpoint
+add_action('rest_api_init', function() {
+    register_rest_route('hivepress-scraper/v1', '/scrape', [
+        'methods' => 'POST',
+        'callback' => function($request) {
+            $url = $request->get_param('url');
+            
+            // Add debug logging
+            error_log('Scraper API called with URL: ' . $url);
+            
+            if (empty($url)) {
+                return new WP_Error('missing_url', 'URL parameter is required', ['status' => 400]);
+            }
+            
+            try {
+                // Your existing scraping logic here
+                $data = scrape_listing_data($url);
+                return ['success' => true, 'data' => $data];
+            } catch (Exception $e) {
+                return new WP_Error('scraping_failed', $e->getMessage(), ['status' => 500]);
+            }
+        },
+        'permission_callback' => function() {
+            return true; // Adjust permissions as needed
+        }
+    ]);
+});
+
+// Add this function if you don't already have it
+function scrape_listing_data($url) {
+    // Your existing scraping logic
+    // For testing, return dummy data
+    return [
+        'title' => 'Test Boat',
+        'price' => '100000',
+        'description' => 'Test description'
+    ];
+}
