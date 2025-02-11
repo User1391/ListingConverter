@@ -16,25 +16,26 @@ add_filter('hivepress/v1/forms/listing_submit', function($form) {
                 'display_type' => 'text',
                 'placeholder' => 'Enter Facebook or SailingForums URL',
                 '_order' => 1,
+                'required' => false,
                 'attributes' => [
                     'id' => 'listing-url',
                 ],
             ],
             'scraper_button' => [
                 'type' => 'button',
-                'display_type' => 'submit',
+                'display_type' => 'button',
                 'label' => 'Import Data',
                 '_order' => 2,
                 'attributes' => [
                     'id' => 'scrape-button',
-                    'class' => ['hp-button', 'hp-button--primary'],
-                    'style' => 'margin-top: 10px;',
+                    'class' => ['hp-button', 'hp-button--secondary'],
+                    'style' => 'margin-top: 10px; margin-bottom: 20px;',
                 ],
             ],
             'scraper_status' => [
                 'type' => 'content',
                 '_order' => 3,
-                'content' => '<div id="scraper-status"></div>',
+                'content' => '<div id="scraper-status" class="hp-form__messages"></div>',
             ],
         ],
         $form['fields']
