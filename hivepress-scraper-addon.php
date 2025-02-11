@@ -121,28 +121,8 @@ add_filter('hivepress/v1/models/listing/attributes', function($attributes) {
     return $attributes;
 });
 
-// Add the scraper form to the listing submission page
-add_action('hivepress/v1/templates/listing_submit_details_page', function($template) {
-    // Create the scraper form HTML
-    $scraper_form = '<div class="hp-form hp-form--narrow">
-        <h3>Import Listing</h3>
-        <form id="listing-scraper-form">
-            <div class="hp-form__field">
-                <label>URL to Import From</label>
-                <input type="url" name="import_url" required>
-            </div>
-            <button type="submit" class="hp-button hp-button--primary">Import</button>
-        </form>
-    </div>';
-    
-    // Add our form before the main content
-    $template->set_content($scraper_form . $template->get_content());
-    
-    return $template;
-}, 5);
-
-// Add scraper field to the listing submission form
-add_filter('hivepress/v1/forms/submit_listing', function($form) {
+// Keep only the form modification hook
+add_filter('hivepress/v1/forms/listing_submit', function($form) {
     scraper_log('Adding scraper field to listing submit form');
     
     // Add our scraper section before other fields
