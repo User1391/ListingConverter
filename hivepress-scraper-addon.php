@@ -14,7 +14,7 @@ function scraper_log($message) {
 scraper_log('Plugin file loaded');
 
 // Add scraper fields to the listing form
-add_filter('hivepress/v1/forms/listing_submit', function($form) {
+add_filter('hivepress/v1/forms/submit_listing', function($form) {
     scraper_log('Modifying listing form');
     
     if (!isset($form['fields'])) {
