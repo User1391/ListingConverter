@@ -91,7 +91,7 @@ add_action('wp_footer', function() {
                 debug('Sending AJAX request...');
                 
                 $.ajax({
-                    url: 'https://boatersmkt.com:5000/scrape',
+                    url: 'https://boatersmkt.com:5001/scrape',
                     method: 'POST',
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
@@ -198,11 +198,35 @@ add_action('rest_api_init', function() {
 
 // Add this function if you don't already have it
 function scrape_listing_data($url) {
-    // Your existing scraping logic
-    // For testing, return dummy data
-    return [
-        'title' => 'Test Boat',
-        'price' => '100000',
-        'description' => 'Test description'
-    ];
+    // Call the Python API
+    $response = wp_remote_post('https://boatersmkt.com:5000/scrape', [
+        'headers' => [
+            'Content-Type' => 'application/json'
+        ],
+        'body' => json_encode([
+            'url' => $url
+        ]),
+        'timeout' => 30,
+        'sslverify' => false // Only if needed for development
+    ]);
+
+    // Log the response for debugging
+    error_log('Python API Response: ' . print_r($response, true));
+
+    if (is_wp_error($response)) {
+        throw new Exception('API request failed: ' . $response->get_error_message());
+    }
+
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+
+    if (!$data || !isset($data['success'])) {
+        throw new Exception('Invalid response from API');
+    }
+
+    if (!$data['success']) {
+        throw new Exception($data['error'] ?? 'Unknown error from API');
+    }
+
+    return $data['data'];
 }
