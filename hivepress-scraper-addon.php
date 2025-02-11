@@ -102,10 +102,10 @@ add_action('all', function($tag) {
     }
 });
 
+// Add the URL field to listing attributes
 add_filter('hivepress/v1/models/listing/attributes', function($attributes) {
     error_log('HivePress Scraper: Listing attributes hook fired');
     
-    // Add our custom field
     $attributes['scraper_url'] = [
         'editable'  => true,
         'name'      => 'scraper_url',
@@ -119,4 +119,25 @@ add_filter('hivepress/v1/models/listing/attributes', function($attributes) {
     ];
     
     return $attributes;
+});
+
+// Add the URL field to both update and submit forms
+add_filter('hivepress/v1/forms/listing_update', function($form) {
+    error_log('HivePress Scraper: Listing update form hook fired');
+    
+    if (!isset($form['fields'])) {
+        $form['fields'] = [];
+    }
+    
+    $form['fields']['scraper_url'] = [
+        'label'     => 'URL to Scrape',
+        'type'      => 'url',
+        'required'  => true,
+        '_order'    => 15,
+        'settings'  => [
+            'max_length' => 2048,
+        ],
+    ];
+    
+    return $form;
 }); 
