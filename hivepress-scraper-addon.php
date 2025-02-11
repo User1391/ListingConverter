@@ -8,6 +8,9 @@
 
 // Add scraper fields to the listing submission form
 add_filter('hivepress/v1/forms/submit_listing', function($form) {
+    // Add debug logging
+    error_log('HivePress Scraper: Form filter triggered');
+    
     $form['fields'] = array_merge(
         [
             'scraper_url' => [
@@ -40,16 +43,22 @@ add_filter('hivepress/v1/forms/submit_listing', function($form) {
         $form['fields']
     );
 
+    // Debug log the form structure
+    error_log('HivePress Scraper: Form structure: ' . print_r($form, true));
+
     // Add the JavaScript for the scraper functionality
     add_action('wp_footer', function() {
+        error_log('HivePress Scraper: Adding footer script');
         ?>
         <script>
         jQuery(document).ready(function($) {
+            console.log('Scraper script loaded'); // Browser console debug
             $('#scrape-button').click(function(e) {
                 e.preventDefault();
                 const url = $('#listing-url').val();
                 const status = $('#scraper-status');
                 
+                console.log('Scrape button clicked, URL:', url); // Browser console debug
                 status.html('Importing data...');
                 
                 $.ajax({
@@ -58,6 +67,7 @@ add_filter('hivepress/v1/forms/submit_listing', function($form) {
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
                     success: function(data) {
+                        console.log('Data received:', data); // Browser console debug
                         // Populate HivePress fields
                         $('input[name="listing_title"]').val(data.title);
                         $('textarea[name="listing_description"]').val(data.description);
@@ -67,6 +77,7 @@ add_filter('hivepress/v1/forms/submit_listing', function($form) {
                         status.html('Data imported successfully!');
                     },
                     error: function(xhr, status, error) {
+                        console.error('Ajax error:', error); // Browser console debug
                         status.html('Error importing data: ' + error);
                     }
                 });
@@ -79,9 +90,14 @@ add_filter('hivepress/v1/forms/submit_listing', function($form) {
     return $form;
 });
 
-// Optional: Keep the hook logging for debugging
+// Keep the hook logging for debugging
 add_action('all', function($tag) {
     if (strpos($tag, 'hivepress') !== false) {
         error_log('HivePress Hook: ' . $tag);
     }
+});
+
+// Add activation hook for debugging
+register_activation_hook(__FILE__, function() {
+    error_log('HivePress Scraper: Plugin activated');
 }); 
