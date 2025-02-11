@@ -141,6 +141,80 @@ add_action('hivepress/v1/templates/listing_submit_details_page', function($templ
     return $template;
 }, 5);
 
+// Add scraper field to the listing submission form
+add_filter('hivepress/v1/forms/submit_listing', function($form) {
+    scraper_log('Adding scraper field to listing submit form');
+    
+    // Add our scraper section before other fields
+    $form['fields'] = array_merge(
+        [
+            'scraper_section' => [
+                'type'   => 'section',
+                'title'  => 'Import Listing',
+                '_order' => 5,
+                'fields' => [
+                    'scraper_url' => [
+                        'label'     => 'URL to Import From',
+                        'type'      => 'url',
+                        'required'  => false,
+                        '_order'    => 10,
+                        'max_length' => 2048,
+                    ],
+                    'scrape_button' => [
+                        'type'    => 'button',
+                        'label'   => 'Import Data',
+                        '_order'  => 15,
+                        'attributes' => [
+                            'id' => 'scrape-button',
+                        ],
+                    ],
+                ],
+            ],
+        ],
+        $form['fields']
+    );
+    
+    // Add our JavaScript
+    add_action('wp_footer', function() {
+        ?>
+        <script>
+        jQuery(document).ready(function($) {
+            $('#scrape-button').on('click', function(e) {
+                e.preventDefault();
+                const url = $('input[name="scraper_url"]').val();
+                const status = $('<div class="hp-form__message">Importing data...</div>');
+                $(this).after(status);
+                
+                $.ajax({
+                    url: 'https://boatersmkt.com/scrape',
+                    method: 'POST',
+                    data: JSON.stringify({ url: url }),
+                    contentType: 'application/json',
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            $('input[name="title"]').val(response.data.title);
+                            $('textarea[name="description"]').val(response.data.description);
+                            $('input[name="price"]').val(response.data.price.replace('$', ''));
+                            $('input[name="location"]').val(response.data.location);
+                            status.html('Data imported successfully!').addClass('hp-form__message--success');
+                        } else {
+                            status.html('Error: Failed to import data').addClass('hp-form__message--error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Ajax error:', error);
+                        status.html('Error importing data: ' + error).addClass('hp-form__message--error');
+                    }
+                });
+            });
+        });
+        </script>
+        <?php
+    });
+    
+    return $form;
+});
+
 // Remove the old form modifications
 // ... remove or comment out the previous listing_update filter ...
 
