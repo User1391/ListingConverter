@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from scrape import extract_listing_data  # Import the function from scrape.py
+import traceback
 
 app = Flask(__name__)
 CORS(app, resources={
