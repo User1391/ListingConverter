@@ -45,7 +45,7 @@ add_action('plugins_loaded', function() {
                     'content' => '<div id="scraper-status"></div>',
                 ],
             ],
-            $fields
+            $form['fields']
         );
     }, 20);
     
