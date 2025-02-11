@@ -100,4 +100,21 @@ add_action('all', function($tag) {
     if (strpos($tag, 'hivepress') !== false) {
         scraper_log('Hook fired: ' . $tag);
     }
-}); 
+});
+
+add_action('init', function() {
+    error_log('HivePress Scraper: Init hook triggered');
+    
+    add_filter('hivepress/v1/forms/listing_submit/fields', function($fields) {
+        error_log('HivePress Scraper: Listing submit form fields filter triggered');
+        
+        $fields['scraper_url'] = [
+            'label' => 'URL to Scrape',
+            'type' => 'url',
+            'required' => true,
+            '_order' => 5,
+        ];
+
+        return $fields;
+    });
+}, 5); // Lower priority number to run earlier 
