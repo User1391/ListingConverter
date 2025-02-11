@@ -18,7 +18,7 @@ add_action('plugins_loaded', function() {
     scraper_log('Plugins loaded hook triggered');
     
     // Add filter for modifying form fields
-    add_filter('hivepress/v1/forms/submit_listing/fields', function($fields) {
+    add_filter('hivepress/v1/forms/submit_listing', function($form) {
         scraper_log('Fields filter triggered');
         
         // Add our custom fields at the beginning
