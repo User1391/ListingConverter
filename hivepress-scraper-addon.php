@@ -55,12 +55,14 @@ add_action('wp_footer', function() {
             
             debug('Initializing scraper...');
             
-            // Log all form fields to help debug
-            debug('Available form fields:', {
-                title: $('input[name="listing[title]"]').length,
-                description: $('textarea[name="listing[description]"]').length,
-                price: $('input[name="listing[price]"]').length,
-                location: $('input[name="listing[location]"]').length
+            // Log all input fields and their names
+            $('input, textarea, select').each(function() {
+                debug('Found form field:', {
+                    name: $(this).attr('name'),
+                    id: $(this).attr('id'),
+                    type: $(this).prop('tagName'),
+                    value: $(this).val()
+                });
             });
             
             if (!scrapeButton.length || !urlInput.length || !status.length) {
@@ -89,7 +91,6 @@ add_action('wp_footer', function() {
                 debug('Sending AJAX request...');
                 
                 $.ajax({
-                    // Temporarily use the original endpoint until we set up the REST API
                     url: 'https://boatersmkt.com/scrape',
                     method: 'POST',
                     data: JSON.stringify({ url: url }),
@@ -98,20 +99,32 @@ add_action('wp_footer', function() {
                         debug('Received response:', response);
                         
                         if (response.success && response.data) {
-                            debug('Updating form fields with data');
+                            debug('Attempting to update form fields');
                             
-                            // Update form fields using HivePress's naming convention
-                            $('input[name="listing[title]"]').val(response.data.title || '');
-                            $('textarea[name="listing[description]"]').val(response.data.description || '');
+                            // Try different possible field name formats
+                            const titleField = $('input[name="listing[title]"], input[name="title"], #title');
+                            const descField = $('textarea[name="listing[description]"], textarea[name="description"], #description');
+                            const priceField = $('input[name="listing[price]"], input[name="price"], #price');
+                            const locField = $('input[name="listing[location]"], input[name="location"], #location');
+                            
+                            debug('Found fields:', {
+                                title: titleField.length,
+                                description: descField.length,
+                                price: priceField.length,
+                                location: locField.length
+                            });
+                            
+                            titleField.val(response.data.title || '');
+                            descField.val(response.data.description || '');
                             
                             if (response.data.price) {
                                 const price = response.data.price.replace(/[^0-9.]/g, '');
-                                $('input[name="listing[price]"]').val(price);
+                                priceField.val(price);
                             }
                             
-                            $('input[name="listing[location]"]').val(response.data.location || '');
+                            locField.val(response.data.location || '');
                             
-                            debug('Form fields updated successfully');
+                            debug('Form fields updated');
                             
                             status.html('Data imported successfully!')
                                   .removeClass('hp-form__message--error')
