@@ -6,42 +6,26 @@
  * Author: Max Penders
  */
 
-// Add scraper fields to the listing submission form
+// Add scraper section to the listing form
 add_filter('hivepress/v1/forms/listing_submit', function($form) {
     $form['fields'] = array_merge(
         [
-            'scraper_url' => [
-                'label' => 'Import Listing',
-                'type' => 'text',
-                'display_type' => 'text',
-                'placeholder' => 'Enter Facebook or SailingForums URL',
-                '_order' => 1,
-                'required' => false,
-                'attributes' => [
-                    'id' => 'listing-url',
-                    'class' => ['hp-field', 'hp-field--text'],
-                ],
-            ],
-            'scraper_button' => [
-                'type' => 'button',
-                'display_type' => 'button',
-                'label' => 'Import Data',
-                '_order' => 2,
-                'attributes' => [
-                    'id' => 'scrape-button',
-                    'class' => ['hp-button', 'hp-button--secondary'],
-                    'style' => 'margin-top: 10px; margin-bottom: 20px;',
-                ],
-            ],
-            'scraper_status' => [
+            'scraper_section' => [
                 'type' => 'content',
-                '_order' => 3,
-                'content' => '<div id="scraper-status" class="hp-form__messages"></div>',
+                '_order' => 0,
+                'content' => '
+                    <div class="hp-form__field">
+                        <label class="hp-field__label">Import Listing</label>
+                        <input type="text" id="listing-url" class="hp-field hp-field--text" placeholder="Enter Facebook or SailingForums URL">
+                        <button id="scrape-button" class="hp-button hp-button--secondary" style="margin-top: 10px; margin-bottom: 20px;">Import Data</button>
+                        <div id="scraper-status" class="hp-form__messages"></div>
+                    </div>
+                ',
             ],
         ],
         $form['fields']
     );
-
+    
     return $form;
 });
 
