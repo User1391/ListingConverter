@@ -8,11 +8,17 @@
 
 // Add scraper section to the listing form
 add_filter('hivepress/v1/forms/listing_submit', function($form) {
+    // Insert scraper after the first field (usually title)
+    $first_field_key = array_key_first($form['fields']);
+    $before = array_slice($form['fields'], 0, 1, true);
+    $after = array_slice($form['fields'], 1, null, true);
+    
     $form['fields'] = array_merge(
+        $before,
         [
             'scraper_section' => [
                 'type' => 'content',
-                '_order' => 0,
+                '_order' => $form['fields'][$first_field_key]['_order'] + 1,
                 'content' => '
                     <div class="hp-form__field">
                         <label class="hp-field__label">Import Listing</label>
@@ -23,7 +29,7 @@ add_filter('hivepress/v1/forms/listing_submit', function($form) {
                 ',
             ],
         ],
-        $form['fields']
+        $after
     );
     
     return $form;
@@ -44,15 +50,22 @@ add_action('wp_footer', function() {
             const status = $('#scraper-status');
             
             if (!scrapeButton.length || !urlInput.length || !status.length) {
-                console.warn('Scraper elements not found');
+                console.error('Scraper elements not found:', {
+                    button: scrapeButton.length,
+                    input: urlInput.length,
+                    status: status.length
+                });
                 return;
             }
+            
+            console.log('Scraper initialized successfully');
             
             scrapeButton.on('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 
                 const url = urlInput.val().trim();
+                console.log('Attempting to scrape URL:', url);
                 
                 if (!url) {
                     status.html('Please enter a URL')
@@ -70,7 +83,12 @@ add_action('wp_footer', function() {
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
                     success: function(response) {
+                        console.log('Scraper response:', response);
+                        
                         if (response.success && response.data) {
+                            // Log form field updates
+                            console.log('Updating form fields with:', response.data);
+                            
                             // Update form fields
                             $('input[name="listing[title]"]').val(response.data.title || '');
                             $('textarea[name="listing[description]"]').val(response.data.description || '');
@@ -88,12 +106,19 @@ add_action('wp_footer', function() {
                                   .removeClass('hp-form__message--error')
                                   .addClass('hp-form__message--success');
                         } else {
+                            console.error('Invalid response format:', response);
                             status.html('Error: Failed to import data')
                                   .removeClass('hp-form__message--success')
                                   .addClass('hp-form__message--error');
                         }
                     },
                     error: function(xhr, status, error) {
+                        console.error('Ajax error:', {
+                            error: error,
+                            status: status,
+                            response: xhr.responseText
+                        });
+                        
                         status.html('Error importing data: ' + error)
                               .removeClass('hp-form__message--success')
                               .addClass('hp-form__message--error');
@@ -107,11 +132,4 @@ add_action('wp_footer', function() {
     });
     </script>
     <?php
-}, 100);
-
-// Optional: Keep the hook logging for debugging
-add_action('all', function($tag) {
-    if (strpos($tag, 'hivepress') !== false) {
-        error_log('HivePress Hook: ' . $tag);
-    }
-}); 
+}, 100); 
