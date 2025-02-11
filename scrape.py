@@ -218,24 +218,24 @@ def save_to_json(data, filename="listing_data.json"):
 
 def main():
     # Example usage
-    print("You can enter a Facebook Marketplace URL or a Sailing Forums URL")
+    logger.info("You can enter a Facebook Marketplace URL or a Sailing Forums URL")
     url = input("Enter listing URL: ")
     
     # Fix the validation to accept both Facebook and Sailing Forums URLs
     if not (url.startswith("https://www.facebook.com/marketplace") or 
             url.startswith("https://www.facebook.com/share") or 
             url.startswith("https://sailingforums.com")):
-        print("Please enter a valid Facebook Marketplace or Sailing Forums URL")
+        logger.info("Please enter a valid Facebook Marketplace or Sailing Forums URL")
         return
     
-    print("Scraping listing data...")
+    logger.info("Scraping listing data...")
     listing_data = extract_listing_data(url)
     
     if listing_data:
         save_to_json(listing_data)
-        print(f"Data successfully saved to listing_data.json")
+        logger.info(f"Data successfully saved to listing_data.json")
     else:
-        print("Failed to extract listing data")
+        logger.error("Failed to extract listing data")
 
 if __name__ == "__main__":
     main()
