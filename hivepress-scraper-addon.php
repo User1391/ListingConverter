@@ -42,39 +42,71 @@ add_filter('hivepress/v1/forms/listing_submit', function($form) {
 
     // Add the JavaScript for the scraper functionality
     add_action('wp_footer', function() {
+        if (!is_page('submit-listing')) {
+            return;
+        }
         ?>
         <script>
         jQuery(document).ready(function($) {
-            $('#scrape-button').click(function(e) {
+            console.log('Scraper script loaded'); // Debug log
+            
+            $(document).on('click', '#scrape-button', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('Scrape button clicked'); // Debug log
+                
                 const url = $('#listing-url').val();
                 const status = $('#scraper-status');
                 
-                status.html('Importing data...');
+                if (!url) {
+                    status.html('Please enter a URL').addClass('hp-form__message--error');
+                    return;
+                }
+                
+                status.html('Importing data...').removeClass('hp-form__message--error hp-form__message--success');
                 
                 $.ajax({
                     url: 'https://boatersmkt.com/scrape',
                     method: 'POST',
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
-                    success: function(data) {
-                        // Populate HivePress fields with correct field names
-                        $('input[name="listing[title]"]').val(data.title);
-                        $('textarea[name="listing[description]"]').val(data.description);
-                        $('input[name="listing[price]"]').val(data.price.replace('$', ''));
-                        $('input[name="listing[location]"]').val(data.location);
+                    success: function(response) {
+                        console.log('Received response:', response); // Debug log
                         
-                        status.html('Data imported successfully!');
+                        if (response.success && response.data) {
+                            $('input[name="listing[title]"]').val(response.data.title || '');
+                            $('textarea[name="listing[description]"]').val(response.data.description || '');
+                            if (response.data.price) {
+                                $('input[name="listing[price]"]').val(
+                                    response.data.price.replace(/[^0-9.]/g, '')
+                                );
+                            }
+                            $('input[name="listing[location]"]').val(response.data.location || '');
+                            
+                            status.html('Data imported successfully!')
+                                  .removeClass('hp-form__message--error')
+                                  .addClass('hp-form__message--success');
+                        } else {
+                            status.html('Error: Failed to import data')
+                                  .removeClass('hp-form__message--success')
+                                  .addClass('hp-form__message--error');
+                        }
                     },
                     error: function(xhr, status, error) {
-                        status.html('Error importing data: ' + error);
+                        console.error('Ajax error:', error); // Debug log
+                        console.error('Response:', xhr.responseText); // Debug log
+                        
+                        status.html('Error importing data: ' + error)
+                              .removeClass('hp-form__message--success')
+                              .addClass('hp-form__message--error');
                     }
                 });
             });
         });
         </script>
         <?php
-    });
+    }, 100);
 
     return $form;
 });
