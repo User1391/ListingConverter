@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.options import Options
 import json
 import time
 import re
+import traceback
 
 def setup_driver():
     chrome_options = Options()
@@ -139,17 +140,33 @@ def extract_facebook_data(driver, url):
         return None
 
 def extract_listing_data(url):
-    driver = setup_driver()
+    print(f"Starting extraction for URL: {url}")  # Debug log
     try:
+        print("Initializing Chrome driver...")  # Debug log
+        driver = setup_driver()
+        print("Chrome driver initialized successfully")  # Debug log
+        
         if "sailingforums.com" in url:
+            print("Processing SailingForums URL...")  # Debug log
             return extract_sailingforums_data(driver, url)
         elif "facebook.com/marketplace" in url or "facebook.com/share" in url:
-            return extract_facebook_data(driver, url)
+            print("Processing Facebook URL...")  # Debug log
+            data = extract_facebook_data(driver, url)
+            print(f"Facebook data extracted: {data}")  # Debug log
+            return data
         else:
-            print("Unsupported URL type")
+            print(f"Unsupported URL type: {url}")  # Debug log
             return None
+    except Exception as e:
+        print(f"Error in extract_listing_data: {str(e)}")  # Debug log
+        print(f"Stack trace: {traceback.format_exc()}")  # Debug log
+        return None
     finally:
-        driver.quit()
+        try:
+            driver.quit()
+            print("Driver closed successfully")  # Debug log
+        except Exception as e:
+            print(f"Error closing driver: {str(e)}")  # Debug log
 
 def save_to_json(data, filename="listing_data.json"):
     with open(filename, 'w', encoding='utf-8') as f:
