@@ -91,10 +91,11 @@ add_action('wp_footer', function() {
                 debug('Sending AJAX request...');
                 
                 $.ajax({
-                    url: 'https://boatersmkt.com/scrape',
+                    url: 'https://boatersmkt.com:5000/scrape',
                     method: 'POST',
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
+                    crossDomain: true,
                     success: function(response) {
                         debug('Received response:', response);
                         
@@ -114,15 +115,15 @@ add_action('wp_footer', function() {
                                 location: locField.length
                             });
                             
-                            titleField.val(response.data.title || '');
-                            descField.val(response.data.description || '');
+                            if (titleField.length) titleField.val(response.data.title || '');
+                            if (descField.length) descField.val(response.data.description || '');
                             
-                            if (response.data.price) {
+                            if (response.data.price && priceField.length) {
                                 const price = response.data.price.replace(/[^0-9.]/g, '');
                                 priceField.val(price);
                             }
                             
-                            locField.val(response.data.location || '');
+                            if (locField.length) locField.val(response.data.location || '');
                             
                             debug('Form fields updated');
                             
@@ -143,7 +144,17 @@ add_action('wp_footer', function() {
                             response: xhr.responseText
                         });
                         
-                        status.html('Error importing data: ' + error)
+                        let errorMessage = 'Error importing data';
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.error) {
+                                errorMessage += ': ' + response.error;
+                            }
+                        } catch (e) {
+                            errorMessage += ': ' + error;
+                        }
+                        
+                        status.html(errorMessage)
                               .removeClass('hp-form__message--success')
                               .addClass('hp-form__message--error');
                     }
