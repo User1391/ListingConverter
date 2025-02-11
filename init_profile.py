@@ -5,22 +5,42 @@ import time
 import getpass
 import os
 import shutil
+import subprocess
+
+def kill_chrome_processes():
+    try:
+        subprocess.run(['pkill', '-f', 'chrome'])
+        subprocess.run(['pkill', '-f', 'chromium'])
+        time.sleep(2)  # Wait for processes to be killed
+        print("Killed existing Chrome processes")
+    except Exception as e:
+        print(f"Error killing Chrome processes: {e}")
 
 def init_chrome_profile():
     profile_dir = '/home/bitnami/.config/chrome-profile'
+    
+    # Kill any running Chrome processes
+    kill_chrome_processes()
     
     # Clean up existing profile if it exists
     if os.path.exists(profile_dir):
         try:
             shutil.rmtree(profile_dir)
             print(f"Removed existing profile at {profile_dir}")
+            time.sleep(2)  # Wait for directory to be fully removed
         except Exception as e:
             print(f"Error removing profile: {e}")
             return
     
     # Create fresh profile directory
-    os.makedirs(profile_dir, exist_ok=True)
-    os.chmod(profile_dir, 0o700)
+    try:
+        os.makedirs(profile_dir, exist_ok=True)
+        os.chmod(profile_dir, 0o700)
+        print(f"Created new profile directory at {profile_dir}")
+        time.sleep(1)  # Wait for directory to be ready
+    except Exception as e:
+        print(f"Error creating profile directory: {e}")
+        return
     
     # Set up Chrome options
     chrome_options = Options()
@@ -30,6 +50,7 @@ def init_chrome_profile():
     chrome_options.add_argument(f'--user-data-dir={profile_dir}')
     chrome_options.add_argument('--profile-directory=Default')
     
+    driver = None
     try:
         # Start Chrome (not headless for initial setup)
         print("Starting Chrome...")
@@ -70,11 +91,14 @@ def init_chrome_profile():
     except Exception as e:
         print(f"Error during initialization: {e}")
     finally:
-        try:
-            driver.quit()
-            print("Chrome closed successfully")
-        except:
-            print("Error closing Chrome")
+        if driver:
+            try:
+                driver.quit()
+                print("Chrome closed successfully")
+            except:
+                print("Error closing Chrome")
+                # Force kill Chrome processes again
+                kill_chrome_processes()
 
 if __name__ == "__main__":
     init_chrome_profile() 
