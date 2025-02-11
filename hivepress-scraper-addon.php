@@ -6,82 +6,40 @@
  * Author: Max Penders
  */
 
-// Add scraper fields to the listing submission form
-add_filter('hivepress/v1/forms/submit_listing', function($form) {
-    $form['fields'] = array_merge(
-        [
-            'scraper_url' => [
-                'label' => 'Import Listing',
-                'type' => 'text',
-                'display_type' => 'text',
-                'placeholder' => 'Enter Facebook or SailingForums URL',
-                '_order' => 1,
-                'attributes' => [
-                    'id' => 'listing-url',
-                ],
-            ],
-            'scraper_button' => [
-                'type' => 'button',
-                'display_type' => 'submit',
-                'label' => 'Import Data',
-                '_order' => 2,
-                'attributes' => [
-                    'id' => 'scrape-button',
-                    'class' => ['hp-button', 'hp-button--primary'],
-                    'style' => 'margin-top: 10px;',
-                ],
-            ],
-            'scraper_status' => [
-                'type' => 'content',
-                '_order' => 3,
-                'content' => '<div id="scraper-status"></div>',
-            ],
-        ],
-        $form['fields']
-    );
+// Debug logging function
+function scraper_log($message) {
+    error_log('HivePress Scraper: ' . $message);
+}
 
-    // Add the JavaScript for the scraper functionality
-    add_action('wp_footer', function() {
-        ?>
-        <script>
-        jQuery(document).ready(function($) {
-            $('#scrape-button').click(function(e) {
-                e.preventDefault();
-                const url = $('#listing-url').val();
-                const status = $('#scraper-status');
-                
-                status.html('Importing data...');
-                
-                $.ajax({
-                    url: 'https://boatersmkt.com/scrape',
-                    method: 'POST',
-                    data: JSON.stringify({ url: url }),
-                    contentType: 'application/json',
-                    success: function(data) {
-                        // Populate HivePress fields
-                        $('input[name="listing_title"]').val(data.title);
-                        $('textarea[name="listing_description"]').val(data.description);
-                        $('input[name="listing_price"]').val(data.price.replace('$', ''));
-                        $('input[name="listing_location"]').val(data.location);
-                        
-                        status.html('Data imported successfully!');
-                    },
-                    error: function(xhr, status, error) {
-                        status.html('Error importing data: ' + error);
-                    }
-                });
-            });
-        });
-        </script>
-        <?php
+scraper_log('Plugin file loaded');
+
+// Hook into HivePress form
+add_action('init', function() {
+    scraper_log('Init hook triggered');
+    
+    add_filter('hivepress/v1/forms/submit_listing', function($form) {
+        scraper_log('Form filter triggered');
+        
+        // Add just the URL field first
+        $form['fields'] = array_merge(
+            [
+                'scraper_url' => [
+                    'label' => 'Import Listing',
+                    'type' => 'text',
+                    '_order' => 1,
+                ],
+            ],
+            $form['fields']
+        );
+        
+        scraper_log('Form modified');
+        return $form;
     });
-
-    return $form;
 });
 
-// Optional: Keep the hook logging for debugging
+// Log all HivePress hooks to see what's available
 add_action('all', function($tag) {
     if (strpos($tag, 'hivepress') !== false) {
-        error_log('HivePress Hook: ' . $tag);
+        scraper_log('Hook fired: ' . $tag);
     }
 }); 
