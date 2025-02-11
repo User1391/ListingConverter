@@ -6,28 +6,27 @@
  * Author: Max Penders
  */
 
-// Add scraper section before the listing form
-add_action('hivepress/v1/templates/listing_submit_page/blocks', function($blocks) {
-    array_unshift($blocks, [
-        'type' => 'container',
-        'blocks' => [
-            [
+// Add scraper section to the listing form
+add_filter('hivepress/v1/forms/listing_submit', function($form) {
+    $form['fields'] = array_merge(
+        [
+            'scraper_section' => [
                 'type' => 'content',
+                '_order' => 0,
                 'content' => '
-                    <div class="hp-form hp-form--narrow">
-                        <div class="hp-form__field">
-                            <label class="hp-field__label">Import Listing</label>
-                            <input type="text" id="listing-url" class="hp-field hp-field--text" placeholder="Enter Facebook or SailingForums URL">
-                        </div>
+                    <div class="hp-form__field">
+                        <label class="hp-field__label">Import Listing</label>
+                        <input type="text" id="listing-url" class="hp-field hp-field--text" placeholder="Enter Facebook or SailingForums URL">
                         <button id="scrape-button" class="hp-button hp-button--secondary" style="margin-top: 10px; margin-bottom: 20px;">Import Data</button>
                         <div id="scraper-status" class="hp-form__messages"></div>
                     </div>
                 ',
             ],
         ],
-    ]);
+        $form['fields']
+    );
     
-    return $blocks;
+    return $form;
 });
 
 // Add the JavaScript for the scraper functionality
