@@ -18,7 +18,7 @@ add_action('plugins_loaded', function() {
     scraper_log('Plugins loaded hook triggered');
     
     // Add filter for modifying form fields
-    add_filter('hivepress/v1/forms/listing_submit/fields', function($fields) {
+    add_filter('hivepress/v1/forms/submit_listing', function($fields) {
         scraper_log('Fields filter triggered');
         
         // Add our custom fields at the beginning
@@ -68,7 +68,7 @@ add_action('plugins_loaded', function() {
                 status.html('Importing data...');
                 
                 $.ajax({
-                    url: 'https://your-domain.com/scrape',
+                    url: 'https://boatersmkt.com/scrape',
                     method: 'POST',
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
@@ -102,19 +102,17 @@ add_action('all', function($tag) {
     }
 });
 
-add_action('init', function() {
-    error_log('HivePress Scraper: Init hook triggered');
+add_action('hivepress/v1/models/listing/attributes', function($attributes) {
+    error_log('HivePress Scraper: Listing attributes hook fired');
     
-    add_filter('hivepress/v1/forms/listing_submit/fields', function($fields) {
-        error_log('HivePress Scraper: Listing submit form fields filter triggered');
-        
-        $fields['scraper_url'] = [
-            'label' => 'URL to Scrape',
-            'type' => 'url',
-            'required' => true,
-            '_order' => 5,
-        ];
-
-        return $fields;
-    });
-}, 5); // Lower priority number to run earlier 
+    // Add our custom field
+    $attributes['scraper_url'] = [
+        'name'      => 'scraper_url',
+        'label'     => 'URL to Scrape',
+        'type'      => 'url',
+        'required'  => true,
+        '_order'    => 15,
+    ];
+    
+    return $attributes;
+}); 
