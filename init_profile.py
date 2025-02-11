@@ -3,24 +3,40 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 import time
 import getpass
+import os
+import shutil
 
 def init_chrome_profile():
+    profile_dir = '/home/bitnami/.config/chrome-profile'
+    
+    # Clean up existing profile if it exists
+    if os.path.exists(profile_dir):
+        try:
+            shutil.rmtree(profile_dir)
+            print(f"Removed existing profile at {profile_dir}")
+        except Exception as e:
+            print(f"Error removing profile: {e}")
+            return
+    
+    # Create fresh profile directory
+    os.makedirs(profile_dir, exist_ok=True)
+    os.chmod(profile_dir, 0o700)
+    
     # Set up Chrome options
     chrome_options = Options()
     chrome_options.add_argument('--disable-notifications')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    
-    # Use the same profile directory as the scraper
-    profile_dir = '/home/bitnami/.config/chrome-profile'
     chrome_options.add_argument(f'--user-data-dir={profile_dir}')
     chrome_options.add_argument('--profile-directory=Default')
     
-    # Start Chrome (not headless for initial setup)
-    driver = webdriver.Chrome(options=chrome_options)
-    
     try:
+        # Start Chrome (not headless for initial setup)
+        print("Starting Chrome...")
+        driver = webdriver.Chrome(options=chrome_options)
+        
         # Go to Facebook login
+        print("Navigating to Facebook login...")
         driver.get('https://www.facebook.com/login')
         
         # Get credentials
@@ -51,8 +67,14 @@ def init_chrome_profile():
         # Give user time to verify and handle any 2FA if needed
         input("Press Enter after verifying login and handling any additional prompts...")
         
+    except Exception as e:
+        print(f"Error during initialization: {e}")
     finally:
-        driver.quit()
+        try:
+            driver.quit()
+            print("Chrome closed successfully")
+        except:
+            print("Error closing Chrome")
 
 if __name__ == "__main__":
     init_chrome_profile() 
