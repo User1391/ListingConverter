@@ -14,33 +14,53 @@ function scraper_log($message) {
 scraper_log('Plugin file loaded');
 
 // Add scraper fields to the listing form
-add_filter('hivepress/v1/forms/submit_listing', function($form) {
-    scraper_log('Adding scraper fields to form');
+add_filter('hivepress/v1/forms/listing_submit', function($form) {
+    scraper_log('Modifying listing form');
     
-    $scraper_fields = [
-        'scraper_url' => [
-            'label' => 'Import Listing',
-            'type' => 'text',
-            'placeholder' => 'Enter Facebook or SailingForums URL',
-            '_order' => 1,
-        ],
-        'scraper_button' => [
-            'type' => 'button',
-            'label' => 'Import Data',
-            'caption' => 'Import',
-            '_order' => 2,
-            'attributes' => [
-                'id' => 'scrape-button',
+    if (!isset($form['fields'])) {
+        $form['fields'] = [];
+    }
+    
+    // Add our scraper section at the beginning
+    $form['fields'] = array_merge(
+        [
+            'scraper_section' => [
+                'type' => 'section',
+                'title' => 'Import Listing',
+                '_order' => 1,
+                'fields' => [
+                    'scraper_url' => [
+                        'label' => 'Import from Facebook or SailingForums',
+                        'type' => 'text',
+                        'required' => false,
+                        '_order' => 1,
+                        'attributes' => [
+                            'id' => 'listing-url',
+                            'placeholder' => 'Enter listing URL',
+                        ],
+                    ],
+                    'scraper_button' => [
+                        'type' => 'button',
+                        'display_type' => 'submit',
+                        'label' => 'Import Data',
+                        '_order' => 2,
+                        'attributes' => [
+                            'id' => 'scrape-button',
+                            'class' => ['hp-button', 'hp-button--primary'],
+                        ],
+                    ],
+                    'scraper_status' => [
+                        'type' => 'content',
+                        '_order' => 3,
+                        'content' => '<div id="scraper-status" class="hp-form__message"></div>',
+                    ],
+                ],
             ],
         ],
-        'scraper_status' => [
-            'type' => 'content',
-            '_order' => 3,
-            'content' => '<div id="scraper-status" class="hp-form__message"></div>',
-        ],
-    ];
+        $form['fields']
+    );
     
-    return array_merge($scraper_fields, $fields);
+    return $form;
 });
 
 // Add the JavaScript
@@ -56,7 +76,7 @@ add_action('wp_footer', function() {
         
         $('#scrape-button').on('click', function(e) {
             e.preventDefault();
-            const url = $('input[name="scraper_url"]').val();
+            const url = $('#listing-url').val();
             const status = $('#scraper-status');
             
             if (!url) {
