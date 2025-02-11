@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from scrape import extract_listing_data
 import requests
 from io import BytesIO
 from selenium import webdriver
@@ -38,27 +37,33 @@ def scrape():
 
         print(f"Received scrape request for URL: {url}")  # Debug log
         
-        data = extract_listing_data(url)
-        
-        if data:
-            # Process images if needed
-            if 'images' in data:
-                processed_images = []
-                for image_url in data['images']:
-                    processed_images.append(image_url)
-                data['images'] = processed_images
-            
-            print(f"Successfully scraped data: {data}")  # Debug log
-            return jsonify({
-                'success': True,
-                'data': data
-            })
-        else:
-            print(f"Failed to extract data from URL: {url}")  # Debug log
-            return jsonify({
-                'success': False,
-                'error': 'Failed to extract data'
-            }), 400
+        # Initialize the driver
+        driver = setup_driver()
+        try:
+            # Use our new function
+            if 'facebook.com' in url:
+                data = extract_facebook_data(driver, url)
+            else:
+                data = None  # Add other handlers as needed
+                
+            if data:
+                print(f"Successfully scraped data: {data}")  # Debug log
+                return jsonify({
+                    'success': True,
+                    'data': data
+                })
+            else:
+                print(f"Failed to extract data from URL: {url}")  # Debug log
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to extract data'
+                }), 400
+        finally:
+            # Make sure to close the driver
+            try:
+                driver.quit()
+            except:
+                pass
             
     except Exception as e:
         print(f"Error processing request: {str(e)}")  # Debug log
