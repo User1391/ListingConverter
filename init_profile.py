@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from pyvirtualdisplay import Display
 import time
 import getpass
 import os
@@ -23,6 +24,11 @@ def init_chrome_profile():
     # Kill any running Chrome processes
     kill_chrome_processes()
     
+    # Start virtual display
+    display = Display(visible=0, size=(1920, 1080))
+    display.start()
+    print("Started virtual display")
+    
     # Create a temporary profile directory
     with tempfile.TemporaryDirectory() as temp_profile_dir:
         print(f"Created temporary profile at {temp_profile_dir}")
@@ -34,6 +40,7 @@ def init_chrome_profile():
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument(f'--user-data-dir={temp_profile_dir}')
         chrome_options.add_argument('--profile-directory=Default')
+        chrome_options.add_argument('--start-maximized')
         
         driver = None
         try:
@@ -94,6 +101,7 @@ def init_chrome_profile():
                 except:
                     print("Error closing Chrome")
                     kill_chrome_processes()
+            display.stop()  # Stop virtual display
 
 if __name__ == "__main__":
     init_chrome_profile() 
