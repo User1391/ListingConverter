@@ -13,58 +13,37 @@ function scraper_log($message) {
 
 scraper_log('Plugin file loaded');
 
-// Register the scraper form
-add_filter('hivepress/v1/forms', function($forms) {
-    scraper_log('Registering scraper form');
+// Add scraper fields to the listing form
+add_filter('hivepress/v1/forms/submit_listing/fields', function($fields) {
+    scraper_log('Adding scraper fields to form');
     
-    $forms['scraper'] = [
-        'description' => 'Import listing data from external sources',
-        'fields' => [
-            'scraper_url' => [
-                'label' => 'Import from Facebook or SailingForums',
-                'type' => 'text',
-                'placeholder' => 'Enter listing URL',
-                '_order' => 10,
+    $scraper_fields = [
+        'scraper_url' => [
+            'label' => 'Import Listing',
+            'type' => 'text',
+            'placeholder' => 'Enter Facebook or SailingForums URL',
+            '_order' => 1,
+        ],
+        'scraper_button' => [
+            'type' => 'button',
+            'label' => 'Import Data',
+            'caption' => 'Import',
+            '_order' => 2,
+            'attributes' => [
+                'id' => 'scrape-button',
             ],
         ],
-        'button' => [
-            'label' => 'Import Data',
-            'id' => 'scrape-button',
-            'class' => ['hp-button', 'hp-button--primary'],
-        ],
-        'messages' => [
-            'submit_success' => 'Data imported successfully.',
+        'scraper_status' => [
+            'type' => 'content',
+            '_order' => 3,
+            'content' => '<div id="scraper-status" class="hp-form__message"></div>',
         ],
     ];
     
-    return $forms;
+    return array_merge($scraper_fields, $fields);
 });
 
-// Add scraper section to the listing submission template
-add_filter('hivepress/v1/templates/listing_submit_form/blocks', function($blocks) {
-    scraper_log('Adding scraper section to template blocks');
-    
-    array_unshift($blocks, [
-        'type' => 'section',
-        'title' => 'Import Listing',
-        'blocks' => [
-            [
-                'type' => 'form',
-                'form' => 'scraper',
-                '_order' => 10,
-            ],
-            [
-                'type' => 'content',
-                'content' => '<div id="scraper-status" class="hp-form__message"></div>',
-                '_order' => 20,
-            ],
-        ],
-    ]);
-    
-    return $blocks;
-});
-
-// Keep only one copy of the JavaScript code
+// Add the JavaScript
 add_action('wp_footer', function() {
     if (!is_page('submit-listing')) {
         return;
@@ -125,7 +104,7 @@ add_action('wp_footer', function() {
     <?php
 }, 100);
 
-// Keep the debug logging
+// Debug logging for HivePress hooks
 add_action('all', function($tag) {
     if (strpos($tag, 'hivepress') !== false) {
         scraper_log('Hook fired: ' . $tag);
