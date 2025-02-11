@@ -8,30 +8,29 @@
 
 // Add scraper section to the listing form
 add_filter('hivepress/v1/forms/listing_submit', function($form) {
-    // Insert scraper after the first field (usually title)
-    $first_field_key = array_key_first($form['fields']);
-    $before = array_slice($form['fields'], 0, 1, true);
-    $after = array_slice($form['fields'], 1, null, true);
+    // Make sure we have fields to work with
+    if (!isset($form['fields']) || !is_array($form['fields'])) {
+        return $form;
+    }
+
+    // Find the title field's order
+    $title_order = isset($form['fields']['title']) ? $form['fields']['title']['_order'] : 10;
     
-    $form['fields'] = array_merge(
-        $before,
-        [
-            'scraper_section' => [
-                'type' => 'content',
-                '_order' => $form['fields'][$first_field_key]['_order'] + 1,
-                'content' => '
-                    <div class="hp-form__field">
-                        <label class="hp-field__label">Import Listing</label>
-                        <input type="text" id="listing-url" class="hp-field hp-field--text" placeholder="Enter Facebook or SailingForums URL">
-                        <button id="scrape-button" class="hp-button hp-button--secondary" style="margin-top: 10px; margin-bottom: 20px;">Import Data</button>
-                        <div id="scraper-status" class="hp-form__messages"></div>
-                    </div>
-                ',
-            ],
-        ],
-        $after
-    );
-    
+    // Add our scraper section right after the title
+    $form['fields']['scraper_section'] = [
+        'type' => 'content',
+        '_order' => $title_order + 1,
+        '_label' => false,
+        'content' => '
+            <div class="hp-form__field">
+                <label class="hp-field__label">Import Listing</label>
+                <input type="text" id="listing-url" class="hp-field hp-field--text" placeholder="Enter Facebook or SailingForums URL">
+                <button id="scrape-button" class="hp-button hp-button--secondary" style="margin-top: 10px; margin-bottom: 20px;">Import Data</button>
+                <div id="scraper-status" class="hp-form__messages"></div>
+            </div>
+        ',
+    ];
+
     return $form;
 });
 
