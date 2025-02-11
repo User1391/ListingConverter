@@ -102,16 +102,20 @@ add_action('all', function($tag) {
     }
 });
 
-add_action('hivepress/v1/models/listing/attributes', function($attributes) {
+add_filter('hivepress/v1/models/listing/attributes', function($attributes) {
     error_log('HivePress Scraper: Listing attributes hook fired');
     
     // Add our custom field
     $attributes['scraper_url'] = [
+        'editable'  => true,
         'name'      => 'scraper_url',
         'label'     => 'URL to Scrape',
         'type'      => 'url',
         'required'  => true,
         '_order'    => 15,
+        'settings'  => [
+            'max_length' => 2048,
+        ],
     ];
     
     return $attributes;
