@@ -7,7 +7,7 @@
  */
 
 // Add scraper fields to the listing submission form
-add_filter('hivepress/v1/forms/submit_listing', function($form) {
+add_filter('hivepress/v1/forms/listing_submit', function($form) {
     $form['fields'] = array_merge(
         [
             'scraper_url' => [
@@ -58,11 +58,11 @@ add_filter('hivepress/v1/forms/submit_listing', function($form) {
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
                     success: function(data) {
-                        // Populate HivePress fields
-                        $('input[name="listing_title"]').val(data.title);
-                        $('textarea[name="listing_description"]').val(data.description);
-                        $('input[name="listing_price"]').val(data.price.replace('$', ''));
-                        $('input[name="listing_location"]').val(data.location);
+                        // Populate HivePress fields with correct field names
+                        $('input[name="listing[title]"]').val(data.title);
+                        $('textarea[name="listing[description]"]').val(data.description);
+                        $('input[name="listing[price]"]').val(data.price.replace('$', ''));
+                        $('input[name="listing[location]"]').val(data.location);
                         
                         status.html('Data imported successfully!');
                     },
