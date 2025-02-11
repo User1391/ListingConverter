@@ -6,41 +6,26 @@
  * Author: Max Penders
  */
 
-// Add scraper fields to the listing submission form
+// Add scraper section to the listing form
 add_filter('hivepress/v1/forms/listing_submit', function($form) {
     $form['fields'] = array_merge(
         [
-            'scraper_url' => [
-                'label' => 'Import Listing',
-                'type' => 'text',
-                'display_type' => 'text',
-                'placeholder' => 'Enter Facebook or SailingForums URL',
-                '_order' => 1,
-                'required' => false,
-                'attributes' => [
-                    'id' => 'listing-url',
-                ],
-            ],
-            'scraper_button' => [
-                'type' => 'button',
-                'display_type' => 'button',
-                'label' => 'Import Data',
-                '_order' => 2,
-                'attributes' => [
-                    'id' => 'scrape-button',
-                    'class' => ['hp-button', 'hp-button--secondary'],
-                    'style' => 'margin-top: 10px; margin-bottom: 20px;',
-                ],
-            ],
-            'scraper_status' => [
+            'scraper_section' => [
                 'type' => 'content',
-                '_order' => 3,
-                'content' => '<div id="scraper-status" class="hp-form__messages"></div>',
+                '_order' => 0,
+                'content' => '
+                    <div class="hp-form__field">
+                        <label class="hp-field__label">Import Listing</label>
+                        <input type="text" id="listing-url" class="hp-field hp-field--text" placeholder="Enter Facebook or SailingForums URL">
+                        <button id="scrape-button" class="hp-button hp-button--secondary" style="margin-top: 10px; margin-bottom: 20px;">Import Data</button>
+                        <div id="scraper-status" class="hp-form__messages"></div>
+                    </div>
+                ',
             ],
         ],
         $form['fields']
     );
-
+    
     return $form;
 });
 
@@ -52,31 +37,46 @@ add_action('wp_footer', function() {
     ?>
     <script>
     jQuery(document).ready(function($) {
+        // Debug flag - set to true to enable console logging
+        const DEBUG = true;
+        
+        function debug(message, data = null) {
+            if (!DEBUG) return;
+            if (data) {
+                console.log(`Scraper Debug: ${message}`, data);
+            } else {
+                console.log(`Scraper Debug: ${message}`);
+            }
+        }
+
         // Initialize scraper functionality
         function initScraper() {
             const scrapeButton = $('#scrape-button');
             const urlInput = $('#listing-url');
             const status = $('#scraper-status');
             
+            debug('Initializing scraper...');
+            
             if (!scrapeButton.length || !urlInput.length || !status.length) {
-                console.error('Scraper elements not found:', {
-                    button: scrapeButton.length,
-                    input: urlInput.length,
+                debug('Error: Required elements not found', {
+                    scrapeButton: scrapeButton.length,
+                    urlInput: urlInput.length,
                     status: status.length
                 });
                 return;
             }
             
-            console.log('Scraper initialized successfully');
+            debug('Scraper elements found and initialized');
             
             scrapeButton.on('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 
                 const url = urlInput.val().trim();
-                console.log('Attempting to scrape URL:', url);
+                debug('Scrape button clicked with URL:', url);
                 
                 if (!url) {
+                    debug('Error: Empty URL provided');
                     status.html('Please enter a URL')
                           .removeClass('hp-form__message--success')
                           .addClass('hp-form__message--error');
@@ -86,17 +86,18 @@ add_action('wp_footer', function() {
                 status.html('Importing data...')
                       .removeClass('hp-form__message--error hp-form__message--success');
                 
+                debug('Sending AJAX request...');
+                
                 $.ajax({
                     url: 'https://boatersmkt.com/scrape',
                     method: 'POST',
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
                     success: function(response) {
-                        console.log('Scraper response:', response);
+                        debug('Received response:', response);
                         
                         if (response.success && response.data) {
-                            // Log form field updates
-                            console.log('Updating form fields with:', response.data);
+                            debug('Updating form fields with data');
                             
                             // Update form fields
                             $('input[name="listing[title]"]').val(response.data.title || '');
@@ -110,19 +111,21 @@ add_action('wp_footer', function() {
                             
                             $('input[name="listing[location]"]').val(response.data.location || '');
                             
+                            debug('Form fields updated successfully');
+                            
                             // Show success message
                             status.html('Data imported successfully!')
                                   .removeClass('hp-form__message--error')
                                   .addClass('hp-form__message--success');
                         } else {
-                            console.error('Invalid response format:', response);
+                            debug('Error: Invalid response format', response);
                             status.html('Error: Failed to import data')
                                   .removeClass('hp-form__message--success')
                                   .addClass('hp-form__message--error');
                         }
                     },
                     error: function(xhr, status, error) {
-                        console.error('Ajax error:', {
+                        debug('AJAX error:', {
                             error: error,
                             status: status,
                             response: xhr.responseText
@@ -134,6 +137,8 @@ add_action('wp_footer', function() {
                     }
                 });
             });
+            
+            debug('Scraper initialization complete');
         }
 
         // Initialize when document is ready
@@ -141,4 +146,4 @@ add_action('wp_footer', function() {
     });
     </script>
     <?php
-}, 100); 
+}, 100);
