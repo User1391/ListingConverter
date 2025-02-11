@@ -1,7 +1,20 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from scrape import extract_listing_data  # Import the function from scrape.py
+from scrape import extract_listing_data
 import traceback
+import logging
+import sys
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),  # Log to stdout for systemd to capture
+        logging.FileHandler('/var/log/listing-scraper.log')  # Also log to file
+    ]
+)
+logger = logging.getLogger('listing-scraper')
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -16,7 +29,7 @@ CORS(app, resources={
 def scrape():
     try:
         if not request.is_json:
-            print("Request is not JSON")  # Debug log
+            logger.error("Request is not JSON")
             return jsonify({
                 'success': False,
                 'error': 'Content-Type must be application/json'
@@ -24,40 +37,41 @@ def scrape():
 
         url = request.json.get('url')
         if not url:
-            print("No URL provided")  # Debug log
+            logger.error("No URL provided")
             return jsonify({
                 'success': False,
                 'error': 'URL is required'
             }), 400
 
-        print(f"Received scrape request for URL: {url}")  # Debug log
+        logger.info(f"Received scrape request for URL: {url}")
         
         # Call the scraping function from scrape.py
-        print("Calling extract_listing_data...")  # Debug log
+        logger.info("Calling extract_listing_data...")
         data = extract_listing_data(url)
-        print(f"Received data from scraper: {data}")  # Debug log
+        logger.info(f"Received data from scraper: {data}")
         
         if data:
-            print(f"Successfully scraped data: {data}")  # Debug log
+            logger.info(f"Successfully scraped data: {data}")
             return jsonify({
                 'success': True,
                 'data': data
             })
         else:
-            print(f"Failed to extract data from URL: {url}")  # Debug log
+            logger.error(f"Failed to extract data from URL: {url}")
             return jsonify({
                 'success': False,
                 'error': 'Failed to extract data'
             }), 400
             
     except Exception as e:
-        print(f"Error processing request: {str(e)}")  # Debug log
-        print(f"Stack trace: {traceback.format_exc()}")  # Debug log
+        logger.error(f"Error processing request: {str(e)}")
+        logger.error(f"Stack trace: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
 if __name__ == '__main__':
-    app.debug = True  # Enable debug mode
-    app.run(host='0.0.0.0', port=5000, ssl_context='adhoc')  # Enable HTTPS 
+    app.debug = True
+    logger.info("Starting Flask application...")
+    app.run(host='0.0.0.0', port=5000, ssl_context='adhoc') 

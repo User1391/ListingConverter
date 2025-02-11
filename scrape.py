@@ -7,6 +7,9 @@ import json
 import time
 import re
 import traceback
+import logging
+
+logger = logging.getLogger('listing-scraper')
 
 def setup_driver():
     chrome_options = Options()
@@ -84,89 +87,130 @@ def extract_sailingforums_data(driver, url):
         listing_data['images'] = image_urls
         
     except Exception as e:
-        print(f"Error extracting sailing forums data: {str(e)}")
+        logger.error(f"Error extracting sailing forums data: {str(e)}")
         return None
         
     return listing_data
 
 def extract_facebook_data(driver, url):
     try:
+        logger.info(f"Starting Facebook scraping for URL: {url}")
         driver.get(url)
+        logger.info("Page loaded, waiting 3 seconds...")
         time.sleep(3)
+        
+        logger.info(f"Current URL after load: {driver.current_url}")
+        logger.info(f"Page source length: {len(driver.page_source)}")
         
         # Close any login popup if it appears
         try:
             close_button = driver.find_element(By.CSS_SELECTOR, '[aria-label="Close"]')
+            logger.info("Found login popup, attempting to close...")
             close_button.click()
-        except:
-            pass
+            logger.info("Closed login popup")
+        except Exception as e:
+            logger.info(f"No login popup found or error closing it: {str(e)}")
         
         listing_data = {}
-        main_content = driver.find_element(By.CSS_SELECTOR, 'div[role="main"]').text
-        content_lines = main_content.split('\n')
+        
+        try:
+            logger.info("Looking for main content...")
+            main_content = driver.find_element(By.CSS_SELECTOR, 'div[role="main"]')
+            logger.info("Found main content element")
+            main_text = main_content.text
+            logger.info(f"Main content text (first 200 chars): {main_text[:200]}")
+        except Exception as e:
+            logger.error(f"Error finding main content: {str(e)}")
+            logger.info("Page source:", driver.page_source[:500])  # Print first 500 chars of page source
+            return None
+        
+        content_lines = main_text.split('\n')
+        logger.info(f"Split content into {len(content_lines)} lines")
         
         # Get title and price
+        logger.info("Looking for title and price...")
         for i, line in enumerate(content_lines):
+            logger.info(f"Line {i}: {line}")  # Print each line for debugging
             if '$' in line and i > 0:
                 listing_data['title'] = content_lines[i-1].strip()
                 listing_data['price'] = line.strip()
+                logger.info(f"Found title: {listing_data.get('title')}")
+                logger.info(f"Found price: {listing_data.get('price')}")
                 break
-                
+        
         # Get location
+        logger.info("Looking for location...")
         location_pattern = r'in ([^,\n]+),\s*([A-Z]{2})'
-        location_match = re.search(location_pattern, main_content)
+        location_match = re.search(location_pattern, main_text)
         listing_data['location'] = f"{location_match.group(1)}, {location_match.group(2)}" if location_match else "Location not specified"
+        logger.info(f"Location found: {listing_data['location']}")
         
         # Get description
-        desc_pattern = r'Condition\n.*?\n(.*?)\n(?=(?:Location|Smithfield|[A-Z][a-z]+,\s*[A-Z]{2}))'
-        desc_match = re.search(desc_pattern, main_content, re.DOTALL)
+        logger.info("Looking for description...")
+        desc_pattern = r'Condition\n.*?\n(.*?)\n(?=(?:Location|Category|Condition)|$)'
+        desc_match = re.search(desc_pattern, main_text, re.DOTALL | re.IGNORECASE)
         listing_data['description'] = desc_match.group(1).strip() if desc_match else "Description not found"
+        logger.info(f"Description found: {listing_data['description'][:100]}...")
         
         # Get images
-        images = driver.find_elements(By.CSS_SELECTOR, 'img[class*="x5yr21d"]')
-        image_urls = []
-        seen_urls = set()
-        for img in images:
-            src = img.get_attribute('src')
-            if src and src not in seen_urls:
-                image_urls.append(src)
-                seen_urls.add(src)
-        listing_data['images'] = image_urls
+        logger.info("Looking for images...")
+        try:
+            images = driver.find_elements(By.CSS_SELECTOR, 'img[class*="x5yr21d"], img[alt*="Product"], div[role="img"]')
+            logger.info(f"Found {len(images)} potential image elements")
+            image_urls = []
+            seen_urls = set()
+            for i, img in enumerate(images):
+                try:
+                    src = img.get_attribute('src')
+                    logger.info(f"Image {i} URL: {src}")
+                    if src and 'https://' in src and not any(x in src.lower() for x in ['profile', 'avatar']):
+                        image_urls.append(src)
+                        seen_urls.add(src)
+                except Exception as e:
+                    logger.error(f"Error processing image {i}: {str(e)}")
+            listing_data['images'] = image_urls
+            logger.info(f"Total valid images found: {len(image_urls)}")
+        except Exception as e:
+            logger.error(f"Error finding images: {str(e)}")
+            listing_data['images'] = []
         
+        logger.info("Facebook data extraction completed")
+        logger.info(f"Final data: {listing_data}")
         return listing_data
         
     except Exception as e:
-        print(f"Error extracting Facebook data: {str(e)}")
+        logger.error(f"Error extracting Facebook data: {str(e)}")
+        logger.error(f"Stack trace: {traceback.format_exc()}")
         return None
 
 def extract_listing_data(url):
-    print(f"Starting extraction for URL: {url}")  # Debug log
+    logger.info(f"Starting extraction for URL: {url}")  # Debug log
     try:
-        print("Initializing Chrome driver...")  # Debug log
+        logger.info("Initializing Chrome driver...")  # Debug log
         driver = setup_driver()
-        print("Chrome driver initialized successfully")  # Debug log
+        logger.info("Chrome driver initialized successfully")  # Debug log
         
         if "sailingforums.com" in url:
-            print("Processing SailingForums URL...")  # Debug log
+            logger.info("Processing SailingForums URL...")  # Debug log
             return extract_sailingforums_data(driver, url)
         elif "facebook.com/marketplace" in url or "facebook.com/share" in url:
-            print("Processing Facebook URL...")  # Debug log
+            logger.info("Processing Facebook URL...")  # Debug log
             data = extract_facebook_data(driver, url)
-            print(f"Facebook data extracted: {data}")  # Debug log
+            logger.info(f"Facebook data extracted: {data}")  # Debug log
             return data
         else:
-            print(f"Unsupported URL type: {url}")  # Debug log
+            logger.info(f"Unsupported URL type: {url}")  # Debug log
             return None
     except Exception as e:
-        print(f"Error in extract_listing_data: {str(e)}")  # Debug log
-        print(f"Stack trace: {traceback.format_exc()}")  # Debug log
+        logger.error(f"Error in extract_listing_data: {str(e)}")  # Debug log
+        logger.error(f"Stack trace: {traceback.format_exc()}")  # Debug log
         return None
     finally:
         try:
             driver.quit()
-            print("Driver closed successfully")  # Debug log
+            logger.info("Driver closed successfully")  # Debug log
         except Exception as e:
-            print(f"Error closing driver: {str(e)}")  # Debug log
+            logger.error(f"Error closing driver: {str(e)}")  # Debug log
 
 def save_to_json(data, filename="listing_data.json"):
     with open(filename, 'w', encoding='utf-8') as f:
