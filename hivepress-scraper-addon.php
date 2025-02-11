@@ -13,31 +13,89 @@ function scraper_log($message) {
 
 scraper_log('Plugin file loaded');
 
-// Hook into HivePress form
-add_action('init', function() {
-    scraper_log('Init hook triggered');
+// Hook earlier to ensure HivePress is loaded
+add_action('plugins_loaded', function() {
+    scraper_log('Plugins loaded hook triggered');
     
-    add_filter('hivepress/v1/forms/submit_listing', function($form) {
-        scraper_log('Form filter triggered');
+    // Add filter for modifying form fields
+    add_filter('hivepress/v1/forms/listing_submit/fields', function($fields) {
+        scraper_log('Fields filter triggered');
         
-        // Add just the URL field first
-        $form['fields'] = array_merge(
+        // Add our custom fields at the beginning
+        return array_merge(
             [
                 'scraper_url' => [
                     'label' => 'Import Listing',
                     'type' => 'text',
                     '_order' => 1,
                 ],
+                'scraper_button' => [
+                    'type' => 'button',
+                    'display_type' => 'submit',
+                    'label' => 'Import Data',
+                    '_order' => 2,
+                    'attributes' => [
+                        'id' => 'scrape-button',
+                        'class' => ['hp-button', 'hp-button--primary'],
+                    ],
+                ],
+                'scraper_status' => [
+                    'type' => 'content',
+                    '_order' => 3,
+                    'content' => '<div id="scraper-status"></div>',
+                ],
             ],
-            $form['fields']
+            $fields
         );
-        
-        scraper_log('Form modified');
-        return $form;
-    });
+    }, 20);
+    
+    // Add the JavaScript
+    add_action('wp_footer', function() {
+        if (!is_page('submit-listing')) {
+            return;
+        }
+        ?>
+        <script>
+        jQuery(document).ready(function($) {
+            console.log('Scraper script loaded');
+            
+            $('#scrape-button').on('click', function(e) {
+                e.preventDefault();
+                const url = $('input[name="scraper_url"]').val();
+                const status = $('#scraper-status');
+                
+                console.log('Scrape button clicked, URL:', url);
+                status.html('Importing data...');
+                
+                $.ajax({
+                    url: 'https://your-domain.com/scrape',
+                    method: 'POST',
+                    data: JSON.stringify({ url: url }),
+                    contentType: 'application/json',
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            $('input[name="title"]').val(response.data.title);
+                            $('textarea[name="description"]').val(response.data.description);
+                            $('input[name="price"]').val(response.data.price.replace('$', ''));
+                            $('input[name="location"]').val(response.data.location);
+                            status.html('Data imported successfully!');
+                        } else {
+                            status.html('Error: Failed to import data');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Ajax error:', error);
+                        status.html('Error importing data: ' + error);
+                    }
+                });
+            });
+        });
+        </script>
+        <?php
+    }, 100);
 });
 
-// Log all HivePress hooks to see what's available
+// Debug: Log all HivePress-related hooks
 add_action('all', function($tag) {
     if (strpos($tag, 'hivepress') !== false) {
         scraper_log('Hook fired: ' . $tag);
