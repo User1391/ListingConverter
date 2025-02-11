@@ -13,27 +13,27 @@ function scraper_log($message) {
 
 scraper_log('Plugin file loaded');
 
-// Add scraper fields to the listing submission form
-add_filter('hivepress/v1/forms/listing_submit_form', function($form) {
-    scraper_log('Modifying listing submit form');
+// Add scraper fields to the listing form
+add_filter('hivepress/v1/forms/listing_update', function($form) {
+    scraper_log('Modifying listing form');
     
     if (!isset($form['fields'])) {
         $form['fields'] = [];
     }
     
-    // Add our scraper section before other fields
+    // Add our scraper section at the beginning
     $form['fields'] = array_merge(
         [
             'scraper_section' => [
                 'type' => 'section',
                 'title' => 'Import Listing',
-                '_order' => 5,
+                '_order' => 1,
                 'fields' => [
                     'scraper_url' => [
                         'label' => 'Import from Facebook or SailingForums',
                         'type' => 'text',
                         'required' => false,
-                        '_order' => 10,
+                        '_order' => 1,
                         'attributes' => [
                             'id' => 'listing-url',
                             'placeholder' => 'Enter listing URL',
@@ -41,8 +41,9 @@ add_filter('hivepress/v1/forms/listing_submit_form', function($form) {
                     ],
                     'scraper_button' => [
                         'type' => 'button',
+                        'display_type' => 'submit',
                         'label' => 'Import Data',
-                        '_order' => 20,
+                        '_order' => 2,
                         'attributes' => [
                             'id' => 'scrape-button',
                             'class' => ['hp-button', 'hp-button--primary'],
@@ -50,7 +51,7 @@ add_filter('hivepress/v1/forms/listing_submit_form', function($form) {
                     ],
                     'scraper_status' => [
                         'type' => 'content',
-                        '_order' => 30,
+                        '_order' => 3,
                         'content' => '<div id="scraper-status" class="hp-form__message"></div>',
                     ],
                 ],
@@ -92,15 +93,15 @@ add_action('wp_footer', function() {
                 contentType: 'application/json',
                 success: function(response) {
                     if (response.success && response.data) {
-                        // Update form fields
-                        $('input[name="title"]').val(response.data.title || '');
-                        $('textarea[name="description"]').val(response.data.description || '');
+                        // Update form fields with proper HivePress field names
+                        $('input[name="listing[title]"]').val(response.data.title || '');
+                        $('textarea[name="listing[description]"]').val(response.data.description || '');
                         if (response.data.price) {
-                            $('input[name="price"]').val(
+                            $('input[name="listing[price]"]').val(
                                 response.data.price.replace(/[^0-9.]/g, '')
                             );
                         }
-                        $('input[name="location"]').val(response.data.location || '');
+                        $('input[name="listing[location]"]').val(response.data.location || '');
                         
                         status.html('Data imported successfully!')
                               .removeClass('hp-form__message--error')
