@@ -121,9 +121,16 @@ add_filter('hivepress/v1/models/listing/attributes', function($attributes) {
     return $attributes;
 });
 
-// Add the scraper form before the main listing form
-add_action('hivepress/v1/templates/listing_submit_page/content', function() {
-    ?>
+// Add the scraper form to the page content
+add_filter('the_content', function($content) {
+    // Only add to the submit listing page
+    if (!is_page('submit-listing')) {
+        return $content;
+    }
+    
+    scraper_log('Adding scraper form to content');
+    
+    $scraper_form = '
     <div class="hp-form hp-form--narrow">
         <h3>Import Listing Data</h3>
         <div class="hp-form__fields">
@@ -139,41 +146,43 @@ add_action('hivepress/v1/templates/listing_submit_page/content', function() {
     </div>
     <script>
     jQuery(document).ready(function($) {
-        console.log('Scraper script loaded');
+        console.log("Scraper script loaded");
         
-        $('#scrape-button').on('click', function(e) {
+        $("#scrape-button").on("click", function(e) {
             e.preventDefault();
-            const url = $('input[name="scraper_url"]').val();
-            const status = $('#scraper-status');
+            const url = $("input[name=\'scraper_url\']").val();
+            const status = $("#scraper-status");
             
-            console.log('Scrape button clicked, URL:', url);
-            status.html('Importing data...');
+            console.log("Scrape button clicked, URL:", url);
+            status.html("Importing data...");
             
             $.ajax({
-                url: 'https://boatersmkt.com/scrape',
-                method: 'POST',
+                url: "https://boatersmkt.com/scrape",
+                method: "POST",
                 data: JSON.stringify({ url: url }),
-                contentType: 'application/json',
+                contentType: "application/json",
                 success: function(response) {
                     if (response.success && response.data) {
-                        $('input[name="title"]').val(response.data.title);
-                        $('textarea[name="description"]').val(response.data.description);
-                        $('input[name="price"]').val(response.data.price.replace('$', ''));
-                        $('input[name="location"]').val(response.data.location);
-                        status.html('Data imported successfully!').addClass('hp-form__message--success');
+                        $("input[name=\'title\']").val(response.data.title);
+                        $("textarea[name=\'description\']").val(response.data.description);
+                        $("input[name=\'price\']").val(response.data.price.replace("$", ""));
+                        $("input[name=\'location\']").val(response.data.location);
+                        status.html("Data imported successfully!").addClass("hp-form__message--success");
                     } else {
-                        status.html('Error: Failed to import data').addClass('hp-form__message--error');
+                        status.html("Error: Failed to import data").addClass("hp-form__message--error");
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Ajax error:', error);
-                    status.html('Error importing data: ' + error).addClass('hp-form__message--error');
+                    console.error("Ajax error:", error);
+                    status.html("Error importing data: " + error).addClass("hp-form__message--error");
                 }
             });
         });
     });
-    </script>
-    <?php
+    </script>';
+    
+    // Add our form before the main content
+    return $scraper_form . $content;
 }, 5);
 
 // Remove the old form modifications
