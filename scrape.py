@@ -11,6 +11,9 @@ def setup_driver():
     chrome_options = Options()
     chrome_options.add_argument('--headless')  # Run in headless mode
     chrome_options.add_argument('--disable-notifications')
+    chrome_options.add_argument('--no-sandbox')  # Required for running as root
+    chrome_options.add_argument('--disable-dev-shm-usage')  # Required on some servers
+    chrome_options.add_argument('--disable-gpu')  # Required on some servers
     chrome_options.add_argument('--lang=en')
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     

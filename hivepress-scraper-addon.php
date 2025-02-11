@@ -7,7 +7,7 @@
  */
 
 // Add scraper fields to the listing submission form
-add_filter('hivepress/v1/forms/listing_submit', function($form) {
+add_filter('hivepress/v1/forms/submit_listing', function($form) {
     $form['fields'] = array_merge(
         [
             'scraper_url' => [
@@ -53,7 +53,7 @@ add_filter('hivepress/v1/forms/listing_submit', function($form) {
                 status.html('Importing data...');
                 
                 $.ajax({
-                    url: 'YOUR_PYTHON_SERVICE_URL/scrape',
+                    url: 'https://boatersmkt.com/scrape',
                     method: 'POST',
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
