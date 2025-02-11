@@ -147,7 +147,6 @@ def extract_facebook_data(driver, url):
             logger.info(f"Main content text (first 200 chars): {main_text[:200]}")
         except Exception as e:
             logger.error(f"Error finding main content: {str(e)}")
-            logger.info("Page source:", driver.page_source[:500])  # Print first 500 chars of page source
             return None
         
         content_lines = main_text.split('\n')
@@ -156,14 +155,12 @@ def extract_facebook_data(driver, url):
         # Get title and price
         logger.info("Looking for title and price...")
         for i, line in enumerate(content_lines):
-            logger.info(f"Line {i}: {line}")  # Print each line for debugging
+            logger.info(f"Line {i}: {line}")
             if '$' in line and i > 0:
                 listing_data['title'] = content_lines[i-1].strip()
                 listing_data['price'] = line.strip()
-                logger.info(f"Found title: {listing_data.get('title')}")
-                logger.info(f"Found price: {listing_data.get('price')}")
                 break
-        
+                
         # Get location
         logger.info("Looking for location...")
         location_pattern = r'in ([^,\n]+),\s*([A-Z]{2})'
@@ -180,25 +177,17 @@ def extract_facebook_data(driver, url):
         
         # Get images
         logger.info("Looking for images...")
-        try:
-            images = driver.find_elements(By.CSS_SELECTOR, 'img[class*="x5yr21d"], img[alt*="Product"], div[role="img"]')
-            logger.info(f"Found {len(images)} potential image elements")
-            image_urls = []
-            seen_urls = set()
-            for i, img in enumerate(images):
-                try:
-                    src = img.get_attribute('src')
-                    logger.info(f"Image {i} URL: {src}")
-                    if src and 'https://' in src and not any(x in src.lower() for x in ['profile', 'avatar']):
-                        image_urls.append(src)
-                        seen_urls.add(src)
-                except Exception as e:
-                    logger.error(f"Error processing image {i}: {str(e)}")
-            listing_data['images'] = image_urls
-            logger.info(f"Total valid images found: {len(image_urls)}")
-        except Exception as e:
-            logger.error(f"Error finding images: {str(e)}")
-            listing_data['images'] = []
+        images = driver.find_elements(By.CSS_SELECTOR, 'img[class*="x5yr21d"], img[alt*="Product"], div[role="img"]')
+        logger.info(f"Found {len(images)} potential image elements")
+        image_urls = []
+        seen_urls = set()
+        for img in images:
+            src = img.get_attribute('src')
+            if src and src not in seen_urls:
+                image_urls.append(src)
+                seen_urls.add(src)
+        listing_data['images'] = image_urls
+        logger.info(f"Total valid images found: {len(image_urls)}")
         
         logger.info("Facebook data extraction completed")
         logger.info(f"Final data: {listing_data}")
