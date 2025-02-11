@@ -7,7 +7,7 @@
  */
 
 // Add the scraper button and input field to the listing submission form
-add_action('hivepress/v1/templates/listing_submit_details_page/content', function() {
+add_action('hivepress/v1/templates/listing_submit_details_page', function() {
     ?>
     <div class="hp-form__field scraper-container" style="margin-bottom: 20px;">
         <label class="hp-form__label">Import Listing</label>
