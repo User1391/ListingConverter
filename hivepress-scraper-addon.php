@@ -121,23 +121,40 @@ add_filter('hivepress/v1/models/listing/attributes', function($attributes) {
     return $attributes;
 });
 
-// Add the URL field to both update and submit forms
+// Add filter for modifying form fields
 add_filter('hivepress/v1/forms/listing_update', function($form) {
-    error_log('HivePress Scraper: Listing update form hook fired');
+    scraper_log('Fields filter triggered');
     
+    // Create a new section for scraper fields
+    $scraper_fields = [
+        'scraper_url' => [
+            'label' => 'Import Listing',
+            'type' => 'text',
+            '_order' => 1,
+        ],
+        'scraper_button' => [
+            'type' => 'button',
+            'display_type' => 'submit',
+            'label' => 'Import Data',
+            '_order' => 2,
+            'attributes' => [
+                'id' => 'scrape-button',
+                'class' => ['hp-button', 'hp-button--primary'],
+            ],
+        ],
+        'scraper_status' => [
+            'type' => 'content',
+            '_order' => 3,
+            'content' => '<div id="scraper-status"></div>',
+        ],
+    ];
+    
+    // Add our section before the main form fields
     if (!isset($form['fields'])) {
         $form['fields'] = [];
     }
     
-    $form['fields']['scraper_url'] = [
-        'label'     => 'URL to Scrape',
-        'type'      => 'url',
-        'required'  => true,
-        '_order'    => 15,
-        'settings'  => [
-            'max_length' => 2048,
-        ],
-    ];
+    $form['fields'] = array_merge($scraper_fields, $form['fields']);
     
     return $form;
 }); 
