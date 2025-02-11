@@ -8,20 +8,38 @@ import time
 import re
 import traceback
 import logging
+import random
 
 logger = logging.getLogger('listing-scraper')
 
 def setup_driver():
     chrome_options = Options()
-    chrome_options.add_argument('--headless')  # Run in headless mode
+    chrome_options.add_argument('--headless')
     chrome_options.add_argument('--disable-notifications')
-    chrome_options.add_argument('--no-sandbox')  # Required for running as root
-    chrome_options.add_argument('--disable-dev-shm-usage')  # Required on some servers
-    chrome_options.add_argument('--disable-gpu')  # Required on some servers
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--lang=en')
+    
+    # Add persistent profile directory
+    profile_dir = '/home/bitnami/.config/chrome-profile'
+    chrome_options.add_argument(f'--user-data-dir={profile_dir}')
+    chrome_options.add_argument('--profile-directory=Default')
+    
+    # Keep existing anti-detection options
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    chrome_options.add_argument('--window-size=1920,1080')
+    
+    # Use a consistent user agent for the profile
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     
     driver = webdriver.Chrome(options=chrome_options)
+    
+    # Additional settings after driver creation
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    
     return driver
 
 def extract_sailingforums_data(driver, url):
@@ -95,18 +113,30 @@ def extract_sailingforums_data(driver, url):
 def extract_facebook_data(driver, url):
     try:
         logger.info(f"Starting Facebook scraping for URL: {url}")
-        driver.get(url)
-        logger.info("Page loaded, waiting 3 seconds...")
+        
+        # Try to access the mobile version first
+        mobile_url = url.replace('www.facebook.com', 'm.facebook.com')
+        logger.info(f"Trying mobile URL: {mobile_url}")
+        driver.get(mobile_url)
         time.sleep(3)
+        
+        # If mobile version fails, try desktop version
+        if "login" in driver.current_url.lower():
+            logger.info("Mobile version requires login, trying desktop version")
+            driver.get(url)
+            time.sleep(3)
         
         logger.info(f"Current URL after load: {driver.current_url}")
         
         # Try multiple selectors for the close button
         close_button_selectors = [
             '[aria-label="Close"]',
-            'div[role="button"][tabindex="0"]',  # Common for FB popups
+            'div[role="button"][tabindex="0"]',
             'div[aria-label="Close"][role="button"]',
-            'i[data-visualcompletion="css-img"][style*="background-position"]'  # X icon
+            'i[data-visualcompletion="css-img"][style*="background-position"]',
+            'button[type="submit"][value="Close"]',  # Mobile close button
+            '.layerCancel',  # Another common close button class
+            '[data-testid="popup_close_button"]'
         ]
         
         for selector in close_button_selectors:
@@ -116,9 +146,13 @@ def extract_facebook_data(driver, url):
                     try:
                         if button.is_displayed():
                             logger.info(f"Found visible close button with selector: {selector}")
-                            button.click()
+                            # Try both click() and JavaScript click
+                            try:
+                                button.click()
+                            except:
+                                driver.execute_script("arguments[0].click();", button)
                             logger.info("Clicked close button")
-                            time.sleep(1)  # Wait for popup to close
+                            time.sleep(1)
                             break
                     except Exception as e:
                         logger.info(f"Error clicking button: {str(e)}")
@@ -129,7 +163,7 @@ def extract_facebook_data(driver, url):
 
         # Check if we're still on a login page
         if "login" in driver.current_url.lower() or "You must log in to continue" in driver.page_source:
-            logger.info("Still on login page after attempting to close popup")
+            logger.info("Still on login page after attempts to bypass")
             return {
                 "error": "Login required to view this listing",
                 "location": None,
