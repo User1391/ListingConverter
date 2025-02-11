@@ -55,16 +55,18 @@ add_action('wp_footer', function() {
             
             debug('Initializing scraper...');
             
+            // Log all form fields to help debug
+            debug('Available form fields:', {
+                title: $('input[name="listing[title]"]').length,
+                description: $('textarea[name="listing[description]"]').length,
+                price: $('input[name="listing[price]"]').length,
+                location: $('input[name="listing[location]"]').length
+            });
+            
             if (!scrapeButton.length || !urlInput.length || !status.length) {
-                debug('Error: Required elements not found', {
-                    scrapeButton: scrapeButton.length,
-                    urlInput: urlInput.length,
-                    status: status.length
-                });
+                debug('Error: Required elements not found');
                 return;
             }
-            
-            debug('Scraper elements found and initialized');
             
             scrapeButton.on('click', function(e) {
                 e.preventDefault();
@@ -87,37 +89,27 @@ add_action('wp_footer', function() {
                 debug('Sending AJAX request...');
                 
                 $.ajax({
-                    url: '/wp-json/hivepress-scraper/v1/scrape',
+                    // Temporarily use the original endpoint until we set up the REST API
+                    url: 'https://boatersmkt.com/scrape',
                     method: 'POST',
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
-                    beforeSend: function(xhr) {
-                        xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
-                    },
                     success: function(response) {
                         debug('Received response:', response);
                         
                         if (response.success && response.data) {
                             debug('Updating form fields with data');
                             
-                            // Update title
-                            $('input[name="listing_title"]').val(response.data.title || '');
+                            // Update form fields using HivePress's naming convention
+                            $('input[name="listing[title]"]').val(response.data.title || '');
+                            $('textarea[name="listing[description]"]').val(response.data.description || '');
                             
-                            // Update description - handle both textarea and TinyMCE if present
-                            const description = response.data.description || '';
-                            $('textarea[name="listing_description"]').val(description);
-                            if (typeof tinyMCE !== 'undefined' && tinyMCE.get('listing_description')) {
-                                tinyMCE.get('listing_description').setContent(description);
-                            }
-                            
-                            // Update price - remove currency symbols and non-numeric chars
                             if (response.data.price) {
                                 const price = response.data.price.replace(/[^0-9.]/g, '');
-                                $('input[name="listing_price"]').val(price);
+                                $('input[name="listing[price]"]').val(price);
                             }
                             
-                            // Update location
-                            $('input[name="listing_location"]').val(response.data.location || '');
+                            $('input[name="listing[location]"]').val(response.data.location || '');
                             
                             debug('Form fields updated successfully');
                             
@@ -138,24 +130,12 @@ add_action('wp_footer', function() {
                             response: xhr.responseText
                         });
                         
-                        let errorMessage = 'Error importing data';
-                        try {
-                            const response = JSON.parse(xhr.responseText);
-                            if (response.message) {
-                                errorMessage += ': ' + response.message;
-                            }
-                        } catch (e) {
-                            errorMessage += ': ' + error;
-                        }
-                        
-                        status.html(errorMessage)
+                        status.html('Error importing data: ' + error)
                               .removeClass('hp-form__message--success')
                               .addClass('hp-form__message--error');
                     }
                 });
             });
-            
-            debug('Scraper initialization complete');
         }
 
         initScraper();
