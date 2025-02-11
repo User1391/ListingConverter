@@ -28,47 +28,37 @@ CORS(app, resources={
 @app.route('/scrape', methods=['POST'])
 def scrape():
     try:
-        if not request.is_json:
-            logger.error("Request is not JSON")
-            return jsonify({
-                'success': False,
-                'error': 'Content-Type must be application/json'
-            }), 400
-
-        url = request.json.get('url')
+        data = request.get_json()
+        url = data.get('url')
+        
         if not url:
-            logger.error("No URL provided")
-            return jsonify({
-                'success': False,
-                'error': 'URL is required'
-            }), 400
-
-        logger.info(f"Received scrape request for URL: {url}")
-        
-        # Call the scraping function from scrape.py
-        logger.info("Calling extract_listing_data...")
-        data = extract_listing_data(url)
-        logger.info(f"Received data from scraper: {data}")
-        
-        if data:
-            logger.info(f"Successfully scraped data: {data}")
-            return jsonify({
-                'success': True,
-                'data': data
-            })
-        else:
-            logger.error(f"Failed to extract data from URL: {url}")
-            return jsonify({
-                'success': False,
-                'error': 'Failed to extract data'
-            }), 400
+            return jsonify({"error": "URL is required"}), 400
             
-    except Exception as e:
-        logger.error(f"Error processing request: {str(e)}")
-        logger.error(f"Stack trace: {traceback.format_exc()}")
+        logging.info(f"Received scrape request for URL: {url}")
+        
+        result = extract_listing_data(url)
+        
+        # Check for error in result
+        if result.get("error"):
+            return jsonify({
+                "success": False,
+                "error": result["error"],
+                "data": None
+            }), 403
+            
+        logging.info(f"Successfully scraped data: {result}")
         return jsonify({
-            'success': False,
-            'error': str(e)
+            "success": True,
+            "error": None,
+            "data": result
+        })
+
+    except Exception as e:
+        logging.error(f"Error processing request: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "data": None
         }), 500
 
 if __name__ == '__main__':

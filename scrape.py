@@ -100,17 +100,43 @@ def extract_facebook_data(driver, url):
         time.sleep(3)
         
         logger.info(f"Current URL after load: {driver.current_url}")
-        logger.info(f"Page source length: {len(driver.page_source)}")
         
-        # Close any login popup if it appears
-        try:
-            close_button = driver.find_element(By.CSS_SELECTOR, '[aria-label="Close"]')
-            logger.info("Found login popup, attempting to close...")
-            close_button.click()
-            logger.info("Closed login popup")
-        except Exception as e:
-            logger.info(f"No login popup found or error closing it: {str(e)}")
+        # Try multiple selectors for the close button
+        close_button_selectors = [
+            '[aria-label="Close"]',
+            'div[role="button"][tabindex="0"]',  # Common for FB popups
+            'div[aria-label="Close"][role="button"]',
+            'i[data-visualcompletion="css-img"][style*="background-position"]'  # X icon
+        ]
         
+        for selector in close_button_selectors:
+            try:
+                close_buttons = driver.find_elements(By.CSS_SELECTOR, selector)
+                for button in close_buttons:
+                    try:
+                        if button.is_displayed():
+                            logger.info(f"Found visible close button with selector: {selector}")
+                            button.click()
+                            logger.info("Clicked close button")
+                            time.sleep(1)  # Wait for popup to close
+                            break
+                    except Exception as e:
+                        logger.info(f"Error clicking button: {str(e)}")
+                        continue
+            except Exception as e:
+                logger.info(f"Error finding close button with selector {selector}: {str(e)}")
+                continue
+
+        # Check if we're still on a login page
+        if "login" in driver.current_url.lower() or "You must log in to continue" in driver.page_source:
+            logger.info("Still on login page after attempting to close popup")
+            return {
+                "error": "Login required to view this listing",
+                "location": None,
+                "description": None,
+                "images": []
+            }
+
         listing_data = {}
         
         try:
@@ -181,7 +207,12 @@ def extract_facebook_data(driver, url):
     except Exception as e:
         logger.error(f"Error extracting Facebook data: {str(e)}")
         logger.error(f"Stack trace: {traceback.format_exc()}")
-        return None
+        return {
+            "error": f"Error extracting data: {str(e)}",
+            "location": None,
+            "description": None,
+            "images": []
+        }
 
 def extract_listing_data(url):
     logger.info(f"Starting extraction for URL: {url}")  # Debug log
