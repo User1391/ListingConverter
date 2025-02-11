@@ -121,68 +121,24 @@ add_filter('hivepress/v1/models/listing/attributes', function($attributes) {
     return $attributes;
 });
 
-// Add the scraper form to the page content
-add_filter('the_content', function($content) {
-    // Only add to the submit listing page
-    if (!is_page('submit-listing')) {
-        return $content;
-    }
-    
-    scraper_log('Adding scraper form to content');
-    
-    $scraper_form = '
-    <div class="hp-form hp-form--narrow">
-        <h3>Import Listing Data</h3>
-        <div class="hp-form__fields">
-            <div class="hp-form__field hp-form__field--text">
-                <label class="hp-field__label">URL to Import</label>
-                <input type="text" name="scraper_url" class="hp-field hp-field--text">
+// Add the scraper form to the listing submission page
+add_action('hivepress/v1/templates/listing_submit_details_page', function($template) {
+    // Create the scraper form HTML
+    $scraper_form = '<div class="hp-form hp-form--narrow">
+        <h3>Import Listing</h3>
+        <form id="listing-scraper-form">
+            <div class="hp-form__field">
+                <label>URL to Import From</label>
+                <input type="url" name="import_url" required>
             </div>
-            <button type="button" id="scrape-button" class="hp-button hp-button--primary hp-button--block">
-                Import Data
-            </button>
-            <div id="scraper-status" class="hp-form__message"></div>
-        </div>
-    </div>
-    <script>
-    jQuery(document).ready(function($) {
-        console.log("Scraper script loaded");
-        
-        $("#scrape-button").on("click", function(e) {
-            e.preventDefault();
-            const url = $("input[name=\'scraper_url\']").val();
-            const status = $("#scraper-status");
-            
-            console.log("Scrape button clicked, URL:", url);
-            status.html("Importing data...");
-            
-            $.ajax({
-                url: "https://boatersmkt.com/scrape",
-                method: "POST",
-                data: JSON.stringify({ url: url }),
-                contentType: "application/json",
-                success: function(response) {
-                    if (response.success && response.data) {
-                        $("input[name=\'title\']").val(response.data.title);
-                        $("textarea[name=\'description\']").val(response.data.description);
-                        $("input[name=\'price\']").val(response.data.price.replace("$", ""));
-                        $("input[name=\'location\']").val(response.data.location);
-                        status.html("Data imported successfully!").addClass("hp-form__message--success");
-                    } else {
-                        status.html("Error: Failed to import data").addClass("hp-form__message--error");
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error("Ajax error:", error);
-                    status.html("Error importing data: " + error).addClass("hp-form__message--error");
-                }
-            });
-        });
-    });
-    </script>';
+            <button type="submit" class="hp-button hp-button--primary">Import</button>
+        </form>
+    </div>';
     
     // Add our form before the main content
-    return $scraper_form . $content;
+    $template->set_content($scraper_form . $template->get_content());
+    
+    return $template;
 }, 5);
 
 // Remove the old form modifications
