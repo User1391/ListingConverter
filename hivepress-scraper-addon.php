@@ -55,16 +55,6 @@ add_action('wp_footer', function() {
             
             debug('Initializing scraper...');
             
-            // Log all input fields and their names
-            $('input, textarea, select').each(function() {
-                debug('Found form field:', {
-                    name: $(this).attr('name'),
-                    id: $(this).attr('id'),
-                    type: $(this).prop('tagName'),
-                    value: $(this).val()
-                });
-            });
-            
             if (!scrapeButton.length || !urlInput.length || !status.length) {
                 debug('Error: Required elements not found');
                 return;
@@ -90,12 +80,14 @@ add_action('wp_footer', function() {
                 
                 debug('Sending AJAX request...');
                 
+                // Updated AJAX call to use WordPress admin-ajax.php
                 $.ajax({
-                    url: 'https://boatersmkt.com:5001/scrape',
+                    url: '<?php echo admin_url('admin-ajax.php'); ?>',
                     method: 'POST',
-                    data: JSON.stringify({ url: url }),
-                    contentType: 'application/json',
-                    crossDomain: true,
+                    data: {
+                        action: 'scrape_listing',
+                        url: url
+                    },
                     success: function(response) {
                         debug('Received response:', response);
                         
@@ -132,7 +124,7 @@ add_action('wp_footer', function() {
                                   .addClass('hp-form__message--success');
                         } else {
                             debug('Error: Invalid response format', response);
-                            status.html('Error: Failed to import data')
+                            status.html(response.data?.message || 'Error: Failed to import data')
                                   .removeClass('hp-form__message--success')
                                   .addClass('hp-form__message--error');
                         }
@@ -147,8 +139,8 @@ add_action('wp_footer', function() {
                         let errorMessage = 'Error importing data';
                         try {
                             const response = JSON.parse(xhr.responseText);
-                            if (response.error) {
-                                errorMessage += ': ' + response.error;
+                            if (response.data?.message) {
+                                errorMessage += ': ' + response.data.message;
                             }
                         } catch (e) {
                             errorMessage += ': ' + error;
@@ -167,6 +159,25 @@ add_action('wp_footer', function() {
     </script>
     <?php
 }, 100);
+
+// Add AJAX handlers
+add_action('wp_ajax_scrape_listing', 'handle_scrape_request');
+add_action('wp_ajax_nopriv_scrape_listing', 'handle_scrape_request');
+
+function handle_scrape_request() {
+    try {
+        $url = $_POST['url'] ?? '';
+        if (empty($url)) {
+            wp_send_json_error(['message' => 'URL is required']);
+        }
+
+        $data = scrape_listing_data($url);
+        wp_send_json_success($data);
+
+    } catch (Exception $e) {
+        wp_send_json_error(['message' => $e->getMessage()]);
+    }
+}
 
 // Register REST API endpoint
 add_action('rest_api_init', function() {
