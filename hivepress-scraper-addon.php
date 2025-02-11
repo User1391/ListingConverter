@@ -13,48 +13,34 @@ function scraper_log($message) {
 
 scraper_log('Plugin file loaded');
 
-// Add scraper section to the listing submission template
-add_filter('hivepress/v1/templates/listing_submit_form/blocks', function($blocks) {
-    scraper_log('Adding scraper section to template blocks');
+// Add scraper fields to the listing form
+add_filter('hivepress/v1/forms/listing_submit/fields', function($fields) {
+    scraper_log('Adding scraper fields to form');
     
-    array_unshift($blocks, [
-        'type' => 'section',
-        'title' => 'Import Listing',
-        'blocks' => [
-            [
-                'type' => 'form',
-                'form' => 'scraper',
-                'blocks' => [
-                    [
-                        'type' => 'row',
-                        'blocks' => [
-                            [
-                                'type' => 'text',
-                                'name' => 'scraper_url',
-                                'label' => 'Import from Facebook or SailingForums',
-                                'placeholder' => 'Enter listing URL',
-                                '_order' => 10,
-                            ],
-                            [
-                                'type' => 'button',
-                                'label' => 'Import Data',
-                                'id' => 'scrape-button',
-                                'class' => ['hp-button', 'hp-button--primary'],
-                                '_order' => 20,
-                            ],
-                        ],
-                    ],
-                    [
-                        'type' => 'content',
-                        'content' => '<div id="scraper-status" class="hp-form__message"></div>',
-                        '_order' => 30,
-                    ],
-                ],
+    $scraper_fields = [
+        'scraper_url' => [
+            'label' => 'Import Listing',
+            'type' => 'text',
+            'placeholder' => 'Enter Facebook or SailingForums URL',
+            '_order' => 1,
+        ],
+        'scraper_button' => [
+            'type' => 'button',
+            'label' => 'Import Data',
+            'caption' => 'Import',
+            '_order' => 2,
+            'attributes' => [
+                'id' => 'scrape-button',
             ],
         ],
-    ]);
+        'scraper_status' => [
+            'type' => 'content',
+            '_order' => 3,
+            'content' => '<div id="scraper-status" class="hp-form__message"></div>',
+        ],
+    ];
     
-    return $blocks;
+    return array_merge($scraper_fields, $fields);
 });
 
 // Add the JavaScript
