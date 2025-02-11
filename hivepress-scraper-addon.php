@@ -6,106 +6,80 @@
  * Author: Max Penders
  */
 
-// Add the scraper button and input field to the listing submission form
-add_action('hivepress/v1/templates/listing_submit_details_page', function() {
-    ?>
-    <div class="hp-form__field scraper-container" style="margin-bottom: 20px;">
-        <label class="hp-form__label">Import Listing</label>
-        <input type="text" id="listing-url" class="hp-field hp-field--text" placeholder="Enter Facebook or SailingForums URL">
-        <button id="scrape-button" class="hp-button hp-button--primary" style="margin-top: 10px;">
-            Import Data
-        </button>
-        <div id="scraper-status"></div>
-    </div>
+// Add scraper fields to the listing submission form
+add_filter('hivepress/v1/forms/listing_submit', function($form) {
+    $form['fields'] = array_merge(
+        [
+            'scraper_url' => [
+                'label' => 'Import Listing',
+                'type' => 'text',
+                'display_type' => 'text',
+                'placeholder' => 'Enter Facebook or SailingForums URL',
+                '_order' => 1,
+                'attributes' => [
+                    'id' => 'listing-url',
+                ],
+            ],
+            'scraper_button' => [
+                'type' => 'button',
+                'display_type' => 'submit',
+                'label' => 'Import Data',
+                '_order' => 2,
+                'attributes' => [
+                    'id' => 'scrape-button',
+                    'class' => ['hp-button', 'hp-button--primary'],
+                    'style' => 'margin-top: 10px;',
+                ],
+            ],
+            'scraper_status' => [
+                'type' => 'content',
+                '_order' => 3,
+                'content' => '<div id="scraper-status"></div>',
+            ],
+        ],
+        $form['fields']
+    );
 
-    <script>
-    jQuery(document).ready(function($) {
-        $('#scrape-button').click(function(e) {
-            e.preventDefault();
-            const url = $('#listing-url').val();
-            const status = $('#scraper-status');
-            
-            status.html('Importing data...');
-            
-            $.ajax({
-                url: 'YOUR_PYTHON_SERVICE_URL/scrape',
-                method: 'POST',
-                data: JSON.stringify({ url: url }),
-                contentType: 'application/json',
-                success: function(data) {
-                    // Populate HivePress fields
-                    // Adjust these selectors based on your actual HivePress field IDs
-                    $('input[name="listing_title"]').val(data.title);
-                    $('textarea[name="listing_description"]').val(data.description);
-                    $('input[name="listing_price"]').val(data.price.replace('$', ''));
-                    $('input[name="listing_location"]').val(data.location);
-                    
-                    // Handle images
-                    // Note: You'll need to implement proper image handling
-                    // as HivePress expects local files rather than URLs
-                    
-                    status.html('Data imported successfully!');
-                },
-                error: function(xhr, status, error) {
-                    status.html('Error importing data: ' + error);
-                }
+    // Add the JavaScript for the scraper functionality
+    add_action('wp_footer', function() {
+        ?>
+        <script>
+        jQuery(document).ready(function($) {
+            $('#scrape-button').click(function(e) {
+                e.preventDefault();
+                const url = $('#listing-url').val();
+                const status = $('#scraper-status');
+                
+                status.html('Importing data...');
+                
+                $.ajax({
+                    url: 'YOUR_PYTHON_SERVICE_URL/scrape',
+                    method: 'POST',
+                    data: JSON.stringify({ url: url }),
+                    contentType: 'application/json',
+                    success: function(data) {
+                        // Populate HivePress fields
+                        $('input[name="listing_title"]').val(data.title);
+                        $('textarea[name="listing_description"]').val(data.description);
+                        $('input[name="listing_price"]').val(data.price.replace('$', ''));
+                        $('input[name="listing_location"]').val(data.location);
+                        
+                        status.html('Data imported successfully!');
+                    },
+                    error: function(xhr, status, error) {
+                        status.html('Error importing data: ' + error);
+                    }
+                });
             });
         });
+        </script>
+        <?php
     });
-    </script>
-    <?php
+
+    return $form;
 });
 
-// Or more specifically for the form itself
-add_action('hivepress/v1/forms/listing_submit/header', function() {
-    ?>
-    <div class="hp-form__field scraper-container" style="margin-bottom: 20px;">
-        <label class="hp-form__label">Import Listing</label>
-        <input type="text" id="listing-url" class="hp-field hp-field--text" placeholder="Enter Facebook or SailingForums URL">
-        <button id="scrape-button" class="hp-button hp-button--primary" style="margin-top: 10px;">
-            Import Data
-        </button>
-        <div id="scraper-status"></div>
-    </div>
-
-    <script>
-    jQuery(document).ready(function($) {
-        $('#scrape-button').click(function(e) {
-            e.preventDefault();
-            const url = $('#listing-url').val();
-            const status = $('#scraper-status');
-            
-            status.html('Importing data...');
-            
-            $.ajax({
-                url: 'YOUR_PYTHON_SERVICE_URL/scrape',
-                method: 'POST',
-                data: JSON.stringify({ url: url }),
-                contentType: 'application/json',
-                success: function(data) {
-                    // Populate HivePress fields
-                    // Adjust these selectors based on your actual HivePress field IDs
-                    $('input[name="listing_title"]').val(data.title);
-                    $('textarea[name="listing_description"]').val(data.description);
-                    $('input[name="listing_price"]').val(data.price.replace('$', ''));
-                    $('input[name="listing_location"]').val(data.location);
-                    
-                    // Handle images
-                    // Note: You'll need to implement proper image handling
-                    // as HivePress expects local files rather than URLs
-                    
-                    status.html('Data imported successfully!');
-                },
-                error: function(xhr, status, error) {
-                    status.html('Error importing data: ' + error);
-                }
-            });
-        });
-    });
-    </script>
-    <?php
-});
-
+// Optional: Keep the hook logging for debugging
 add_action('all', function($tag) {
     if (strpos($tag, 'hivepress') !== false) {
         error_log('HivePress Hook: ' . $tag);
