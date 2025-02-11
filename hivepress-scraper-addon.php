@@ -6,30 +6,40 @@
  * Author: Max Penders
  */
 
-// Add scraper section to the listing form
+// Add scraper fields to the listing submission form
 add_filter('hivepress/v1/forms/listing_submit', function($form) {
-    // Make sure we have fields to work with
-    if (!isset($form['fields']) || !is_array($form['fields'])) {
-        return $form;
-    }
-
-    // Find the title field's order
-    $title_order = isset($form['fields']['title']) ? $form['fields']['title']['_order'] : 10;
-    
-    // Add our scraper section right after the title
-    $form['fields']['scraper_section'] = [
-        'type' => 'content',
-        '_order' => $title_order + 1,
-        '_label' => false,
-        'content' => '
-            <div class="hp-form__field">
-                <label class="hp-field__label">Import Listing</label>
-                <input type="text" id="listing-url" class="hp-field hp-field--text" placeholder="Enter Facebook or SailingForums URL">
-                <button id="scrape-button" class="hp-button hp-button--secondary" style="margin-top: 10px; margin-bottom: 20px;">Import Data</button>
-                <div id="scraper-status" class="hp-form__messages"></div>
-            </div>
-        ',
-    ];
+    $form['fields'] = array_merge(
+        [
+            'scraper_url' => [
+                'label' => 'Import Listing',
+                'type' => 'text',
+                'display_type' => 'text',
+                'placeholder' => 'Enter Facebook or SailingForums URL',
+                '_order' => 1,
+                'required' => false,
+                'attributes' => [
+                    'id' => 'listing-url',
+                ],
+            ],
+            'scraper_button' => [
+                'type' => 'button',
+                'display_type' => 'button',
+                'label' => 'Import Data',
+                '_order' => 2,
+                'attributes' => [
+                    'id' => 'scrape-button',
+                    'class' => ['hp-button', 'hp-button--secondary'],
+                    'style' => 'margin-top: 10px; margin-bottom: 20px;',
+                ],
+            ],
+            'scraper_status' => [
+                'type' => 'content',
+                '_order' => 3,
+                'content' => '<div id="scraper-status" class="hp-form__messages"></div>',
+            ],
+        ],
+        $form['fields']
+    );
 
     return $form;
 });
