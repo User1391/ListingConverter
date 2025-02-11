@@ -37,7 +37,6 @@ add_action('wp_footer', function() {
     ?>
     <script>
     jQuery(document).ready(function($) {
-        // Debug flag - set to true to enable console logging
         const DEBUG = true;
         
         function debug(message, data = null) {
@@ -49,7 +48,6 @@ add_action('wp_footer', function() {
             }
         }
 
-        // Initialize scraper functionality
         function initScraper() {
             const scrapeButton = $('#scrape-button');
             const urlInput = $('#listing-url');
@@ -89,31 +87,40 @@ add_action('wp_footer', function() {
                 debug('Sending AJAX request...');
                 
                 $.ajax({
-                    url: 'https://boatersmkt.com/scrape',
+                    url: '/wp-json/hivepress-scraper/v1/scrape',
                     method: 'POST',
                     data: JSON.stringify({ url: url }),
                     contentType: 'application/json',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
+                    },
                     success: function(response) {
                         debug('Received response:', response);
                         
                         if (response.success && response.data) {
                             debug('Updating form fields with data');
                             
-                            // Update form fields
-                            $('input[name="listing[title]"]').val(response.data.title || '');
-                            $('textarea[name="listing[description]"]').val(response.data.description || '');
+                            // Update title
+                            $('input[name="listing_title"]').val(response.data.title || '');
                             
-                            if (response.data.price) {
-                                $('input[name="listing[price]"]').val(
-                                    response.data.price.replace(/[^0-9.]/g, '')
-                                );
+                            // Update description - handle both textarea and TinyMCE if present
+                            const description = response.data.description || '';
+                            $('textarea[name="listing_description"]').val(description);
+                            if (typeof tinyMCE !== 'undefined' && tinyMCE.get('listing_description')) {
+                                tinyMCE.get('listing_description').setContent(description);
                             }
                             
-                            $('input[name="listing[location]"]').val(response.data.location || '');
+                            // Update price - remove currency symbols and non-numeric chars
+                            if (response.data.price) {
+                                const price = response.data.price.replace(/[^0-9.]/g, '');
+                                $('input[name="listing_price"]').val(price);
+                            }
+                            
+                            // Update location
+                            $('input[name="listing_location"]').val(response.data.location || '');
                             
                             debug('Form fields updated successfully');
                             
-                            // Show success message
                             status.html('Data imported successfully!')
                                   .removeClass('hp-form__message--error')
                                   .addClass('hp-form__message--success');
@@ -131,7 +138,17 @@ add_action('wp_footer', function() {
                             response: xhr.responseText
                         });
                         
-                        status.html('Error importing data: ' + error)
+                        let errorMessage = 'Error importing data';
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.message) {
+                                errorMessage += ': ' + response.message;
+                            }
+                        } catch (e) {
+                            errorMessage += ': ' + error;
+                        }
+                        
+                        status.html(errorMessage)
                               .removeClass('hp-form__message--success')
                               .addClass('hp-form__message--error');
                     }
@@ -141,7 +158,6 @@ add_action('wp_footer', function() {
             debug('Scraper initialization complete');
         }
 
-        // Initialize when document is ready
         initScraper();
     });
     </script>
