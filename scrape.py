@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from pyvirtualdisplay import Display
 import json
 import time
 import re
@@ -13,6 +14,11 @@ import random
 logger = logging.getLogger('listing-scraper')
 
 def setup_driver():
+    # Start virtual display
+    display = Display(visible=0, size=(1920, 1080))
+    display.start()
+    logger.info("Started virtual display")
+    
     chrome_options = Options()
     chrome_options.add_argument('--disable-notifications')
     chrome_options.add_argument('--no-sandbox')
@@ -39,7 +45,7 @@ def setup_driver():
     # Additional settings after driver creation
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     
-    return driver
+    return driver, display
 
 def extract_sailingforums_data(driver, url):
     driver.get(url)
@@ -237,33 +243,39 @@ def extract_facebook_data(driver, url):
         }
 
 def extract_listing_data(url):
-    logger.info(f"Starting extraction for URL: {url}")  # Debug log
+    logger.info(f"Starting extraction for URL: {url}")
+    driver = None
+    display = None
     try:
-        logger.info("Initializing Chrome driver...")  # Debug log
-        driver = setup_driver()
-        logger.info("Chrome driver initialized successfully")  # Debug log
+        logger.info("Initializing Chrome driver...")
+        driver, display = setup_driver()
+        logger.info("Chrome driver initialized successfully")
         
         if "sailingforums.com" in url:
-            logger.info("Processing SailingForums URL...")  # Debug log
+            logger.info("Processing SailingForums URL...")
             return extract_sailingforums_data(driver, url)
         elif "facebook.com/marketplace" in url or "facebook.com/share" in url:
-            logger.info("Processing Facebook URL...")  # Debug log
+            logger.info("Processing Facebook URL...")
             data = extract_facebook_data(driver, url)
-            logger.info(f"Facebook data extracted: {data}")  # Debug log
+            logger.info(f"Facebook data extracted: {data}")
             return data
         else:
-            logger.info(f"Unsupported URL type: {url}")  # Debug log
+            logger.info(f"Unsupported URL type: {url}")
             return None
     except Exception as e:
-        logger.error(f"Error in extract_listing_data: {str(e)}")  # Debug log
-        logger.error(f"Stack trace: {traceback.format_exc()}")  # Debug log
+        logger.error(f"Error in extract_listing_data: {str(e)}")
+        logger.error(f"Stack trace: {traceback.format_exc()}")
         return None
     finally:
         try:
-            driver.quit()
-            logger.info("Driver closed successfully")  # Debug log
+            if driver:
+                driver.quit()
+                logger.info("Driver closed successfully")
+            if display:
+                display.stop()
+                logger.info("Display stopped successfully")
         except Exception as e:
-            logger.error(f"Error closing driver: {str(e)}")  # Debug log
+            logger.error(f"Error in cleanup: {str(e)}")
 
 def save_to_json(data, filename="listing_data.json"):
     with open(filename, 'w', encoding='utf-8') as f:
